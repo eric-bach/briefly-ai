@@ -1,0 +1,15 @@
+services:
+  briefly-agent:
+    build: .
+    container_name: briefly-agent
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Healthcheck to ensure the agent is running (optional but recommended)
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
