@@ -1,0 +1,60 @@
+default_agent: briefly_ai
+agents:
+  briefly_ai:
+    name: briefly_ai
+    entrypoint: D:/Projects/briefly-ai/backend-aws/agent_deployment/agent.py
+    deployment_type: container
+    runtime_type: null
+    platform: linux/arm64
+    container_runtime: docker
+    source_path: D:\Projects\briefly-ai\backend-aws\agent_deployment
+    aws:
+      execution_role: arn:aws:iam::524849261220:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-53906ea2c8
+      execution_role_auto_create: false
+      account: '524849261220'
+      region: us-east-1
+      ecr_repository: 524849261220.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-briefly_ai
+      ecr_auto_create: false
+      s3_path: null
+      s3_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+        network_mode_config: null
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+      lifecycle_configuration:
+        idle_runtime_session_timeout: null
+        max_lifetime: null
+    bedrock_agentcore:
+      agent_id: briefly_ai-rDhrbhC9li
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:524849261220:runtime/briefly_ai-rDhrbhC9li
+      agent_session_id: 51fafd0c-c706-4ff1-9cd7-cb4b90dc34b9
+    codebuild:
+      project_name: bedrock-agentcore-briefly_ai-builder
+      execution_role: arn:aws:iam::524849261220:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-53906ea2c8
+      source_bucket: bedrock-agentcore-codebuild-sources-524849261220-us-east-1
+    memory:
+      mode: STM_AND_LTM
+      memory_id: briefly_ai_mem-mFgA6t8Dq3
+      memory_arn: arn:aws:bedrock-agentcore:us-east-1:524849261220:memory/briefly_ai_mem-mFgA6t8Dq3
+      memory_name: briefly_ai_mem
+      event_expiry_days: 30
+      first_invoke_memory_check_done: true
+      was_created_by_toolkit: true
+    identity:
+      credential_providers: []
+      workload: null
+    aws_jwt:
+      enabled: false
+      audiences: []
+      signing_algorithm: ES384
+      issuer_url: null
+      duration_seconds: 300
+    authorizer_configuration: null
+    request_header_configuration: null
+    oauth_configuration: null
+    api_key_env_var_name: null
+    api_key_credential_provider_name: null
+    is_generated_by_agentcore_create: false
