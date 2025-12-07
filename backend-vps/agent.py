@@ -7,6 +7,7 @@ from strands import Agent, tool
 from strands.models.gemini import GeminiModel
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 
 # Load environment variables
 load_dotenv()
