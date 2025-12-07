@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "agent-deployment",
-    "backend-aws",
+    "backend-agentcore",
 ]
 
 [[package]]
@@ -192,7 +192,7 @@ wheels = [
 ]
 
 [[package]]
-name = "backend-aws"
+name = "backend-agentcore"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

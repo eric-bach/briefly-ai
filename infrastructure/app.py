@@ -18,4 +18,14 @@ dataProps = DataStack(app, f"{APP_NAME}-data",
     )
 )
 
+AppStack(app, f"{APP_NAME}-app", 
+    app_name=APP_NAME,
+    env_name=ENV_NAME,
+    env=cdk.Environment(
+        account=os.environ.get('CDK_DEFAULT_ACCOUNT'),
+        region=os.environ.get('CDK_DEFAULT_REGION')
+    )
+)
+
 app.synth()
+

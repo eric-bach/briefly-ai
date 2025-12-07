@@ -8,6 +8,7 @@ from strands.models import BedrockModel
 #from strands.models.gemini import GeminiModel
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 
 # Load environment variables
 load_dotenv()
@@ -26,15 +27,15 @@ When a user provides a YouTube video URL:
 4. If you cannot get the transcript, apologize and explain why (e.g., no subtitles available).
 """
 
-# model = GeminiModel(
-#     client_args={
-#         "api_key": os.environ.get("GEMINI_API_KEY"),
-#     },
-#     model_id=os.environ.get("GEMINI_MODEL_ID")
-# )BedrockModel
-model = BedrockModel(
-    model_id='us.amazon.nova-2-lite-v1:0'
+model = GeminiModel(
+    client_args={
+        "api_key": os.environ.get("GEMINI_API_KEY"),
+    },
+    model_id=os.environ.get("GEMINI_MODEL_ID")
 )
+# model = BedrockModel(
+#     model_id='us.amazon.nova-2-lite-v1:0'
+# )
 
 app = BedrockAgentCoreApp()
 
@@ -59,7 +60,12 @@ def fetch_transcript(video_url: str) -> str:
     """
     try:
         video_id = extract_video_id(video_url)
-        api = YouTubeTranscriptApi()
+        api = YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username=os.environ.get("WEBSHARE_USERNAME"),
+                proxy_password=os.environ.get("WEBSHARE_PASSWORD")
+            )
+        )
         transcript = api.fetch(video_id)
         
         # Custom formatting - transcript items are objects with .text attribute

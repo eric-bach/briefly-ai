@@ -4,9 +4,11 @@ import json
 import re
 from dotenv import load_dotenv
 from strands import Agent, tool
-from strands.models.gemini import GeminiModel
+from strands.models import BedrockModel
+#from strands.models.gemini import GeminiModel
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 
 # Load environment variables
 load_dotenv()
@@ -25,11 +27,14 @@ When a user provides a YouTube video URL:
 4. If you cannot get the transcript, apologize and explain why (e.g., no subtitles available).
 """
 
-gemini_model = GeminiModel(
-    client_args={
-        "api_key": os.environ.get("GEMINI_API_KEY"),
-    },
-    model_id=os.environ.get("GEMINI_MODEL_ID")
+# model = GeminiModel(
+#     client_args={
+#         "api_key": os.environ.get("GEMINI_API_KEY"),
+#     },
+#     model_id=os.environ.get("GEMINI_MODEL_ID")
+# )BedrockModel
+model = BedrockModel(
+    model_id='us.amazon.nova-2-lite-v1:0'
 )
 
 app = BedrockAgentCoreApp()
@@ -91,7 +96,7 @@ async def invoke(payload):
         #agent = Agent()
         agent = Agent(
             name="youtube_summarizer",
-            model=gemini_model,
+            model=model,
             system_prompt=system_instructions,
             tools=[get_video_transcript]
         )    
