@@ -58,8 +58,8 @@ def fetch_transcript(video_url: str) -> str:
         video_id = extract_video_id(video_url)
         api = YouTubeTranscriptApi(
             proxy_config=WebshareProxyConfig(
-                proxy_username=os.environ.get("WEBSHARE_USERNAME"),
-                proxy_password=os.environ.get("WEBSHARE_PASSWORD")
+                proxy_username=os.environ.get("WEBSHARE_PROXY_USERNAME"),
+                proxy_password=os.environ.get("WEBSHARE_PROXY_PASSWORD")
             )
         )
         transcript = api.fetch(video_id)
