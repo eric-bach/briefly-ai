@@ -16,7 +16,6 @@ import {
 } from "@aws-amplify/ui-react";
 import { Turnstile } from "next-turnstile";
 import { AlertCircle, Menu } from "lucide-react";
-import Dasbboard from "./dashboard/page";
 
 import "@aws-amplify/ui-react/styles.css";
 
@@ -334,11 +333,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <ThemeProvider theme={theme}>
       <Authenticator formFields={formFields} components={components}>
-        {({ signOut, user }) => (
-          <Dasbboard signOut={signOut} user={user}>
-            {children}
-          </Dasbboard>
-        )}
+        {children}
       </Authenticator>
     </ThemeProvider>
   );
