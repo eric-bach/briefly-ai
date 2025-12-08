@@ -93,7 +93,7 @@ async def invoke(payload):
         #agent = Agent()
         agent = Agent(
             name="youtube_summarizer",
-            model=gemini_model,
+            model=model,
             system_prompt=system_instructions,
             tools=[get_video_transcript]
         )    
