@@ -3,6 +3,7 @@ import os
 import aws_cdk as cdk
 from lib.data_stack import DataStack
 from lib.app_stack import AppStack
+from lib.app2_stack import App2Stack
 
 app = cdk.App()
 
@@ -19,6 +20,15 @@ dataProps = DataStack(app, f"{APP_NAME}-data",
 )
 
 AppStack(app, f"{APP_NAME}-app", 
+    app_name=APP_NAME,
+    env_name=ENV_NAME,
+    env=cdk.Environment(
+        account=os.environ.get('CDK_DEFAULT_ACCOUNT'),
+        region=os.environ.get('CDK_DEFAULT_REGION')
+    )
+)
+
+App2Stack(app, f"{APP_NAME}-app2", 
     app_name=APP_NAME,
     env_name=ENV_NAME,
     env=cdk.Environment(
