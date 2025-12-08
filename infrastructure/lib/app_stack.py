@@ -174,7 +174,8 @@ class AppStack(Stack):
         trigger_build = CustomResource(self, "TriggerImageBuild",
             service_token=build_trigger_function.function_arn,
             properties={
-                "ProjectName": build_project.project_name
+                "ProjectName": build_project.project_name,
+                "AssetHash": source_asset.asset_hash
             }
         )
         
