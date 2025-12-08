@@ -15,7 +15,7 @@ import {
   View,
 } from "@aws-amplify/ui-react";
 import { Turnstile } from "next-turnstile";
-import { AlertCircle, Menu } from "lucide-react";
+import { AlertCircle, Menu, Youtube } from "lucide-react";
 
 import "@aws-amplify/ui-react/styles.css";
 
@@ -54,15 +54,18 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         },
         button: {
           primary: {
-            backgroundColor: "#256aac",
+            backgroundColor: "#dc2626",
+            _hover: {
+              backgroundColor: "#b91c1c",
+            },
           },
           link: {
-            color: "#256aac",
+            color: "#dc2626",
           },
         },
         fieldcontrol: {
           _focus: {
-            boxShadow: `0 0 0 2px #256aac`,
+            boxShadow: `0 0 0 2px #dc2626`,
           },
         },
         tabs: {
@@ -70,7 +73,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             color: tokens.colors.neutral["80"],
             _active: {
               borderColor: tokens.colors.neutral["100"],
-              color: "#256aac",
+              color: "#dc2626",
             },
           },
         },
@@ -91,9 +94,14 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            gap: "1rem",
           }}
         >
-          <Image alt="Briefly AI" src="/logo.png" width={54} height={54} />
+          <div className="flex justify-center">
+            <div className="p-4 bg-white rounded-2xl shadow-md border border-gray-100">
+              <Youtube className="w-12 h-12 text-red-600" />
+            </div>
+          </div>
           <Heading level={4}>Briefly AI</Heading>
         </View>
       );

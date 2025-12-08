@@ -2,14 +2,21 @@
 
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Play, Youtube } from "lucide-react";
 
 export default function Dashboard() {
   const { user, signOut } = useAuthenticator((context) => [context.user]);
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleSignOut = () => {
+    signOut && signOut();
+    router.push("/");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +66,29 @@ export default function Dashboard() {
               const dataContent = line.slice(6);
               // The backend sends a JSON string encoded value
               const parsed = JSON.parse(dataContent);
-              setSummary((prev) => prev + parsed);
+
+              if (typeof parsed === "string") {
+                setSummary((prev) => prev + parsed);
+              } else if (parsed && typeof parsed === "object") {
+                if (parsed.error) {
+                  console.error("Stream error:", parsed);
+                  // Try to extract a readable message
+                  let errorMessage = parsed.error;
+                  if (typeof errorMessage === "string") {
+                    try {
+                      const errorObj = JSON.parse(errorMessage);
+                      if (errorObj.error?.message) {
+                        errorMessage = errorObj.error.message;
+                      }
+                    } catch {
+                      // usage as is
+                    }
+                  } else if (errorMessage.message) {
+                    errorMessage = errorMessage.message;
+                  }
+                  setError(String(errorMessage));
+                }
+              }
             } catch (e) {
               console.error("Failed to parse SSE message", line);
             }
@@ -87,7 +116,7 @@ export default function Dashboard() {
             {user?.signInDetails?.loginId}
           </span>
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors"
           >
             Sign out

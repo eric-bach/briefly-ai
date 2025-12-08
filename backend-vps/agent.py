@@ -26,11 +26,11 @@ When a user provides a YouTube video URL:
 4. If you cannot get the transcript, apologize and explain why (e.g., no subtitles available).
 """
 
-gemini_model = GeminiModel(
+model = GeminiModel(
     client_args={
         "api_key": os.environ.get("GEMINI_API_KEY"),
     },
-    model_id=os.environ.get("GEMINI_MODEL_ID")
+    model_id=os.environ.get("MODEL_ID")
 )
 
 app = BedrockAgentCoreApp()
@@ -56,6 +56,7 @@ def fetch_transcript(video_url: str) -> str:
     """
     try:
         video_id = extract_video_id(video_url)
+        print(video_id)
         api = YouTubeTranscriptApi(
             proxy_config=WebshareProxyConfig(
                 proxy_username=os.environ.get("WEBSHARE_PROXY_USERNAME"),
