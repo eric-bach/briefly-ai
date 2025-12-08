@@ -31,7 +31,7 @@ model = GeminiModel(
     client_args={
         "api_key": os.environ.get("GEMINI_API_KEY"),
     },
-    model_id=os.environ.get("GEMINI_MODEL_ID")
+    model_id=os.environ.get("MODEL_ID")
 )
 # model = BedrockModel(
 #     model_id='us.amazon.nova-2-lite-v1:0'
