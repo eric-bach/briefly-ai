@@ -1,6 +1,6 @@
-from aws_cdk import Stack
+from aws_cdk import Stack, CfnOutput
 from aws_cdk.aws_bedrock_agentcore_alpha import Runtime, AgentRuntimeArtifact
-from aws_cdk.aws_iam import Role, PolicyStatement, ManagedPolicy, ServicePrincipal
+from aws_cdk.aws_iam import Role, PolicyStatement, ManagedPolicy, ServicePrincipal, User
 from aws_cdk.aws_ecr_assets import Platform
 from constructs import Construct
 from dotenv import load_dotenv
@@ -35,4 +35,20 @@ class AppStack(Stack):
             runtime_name=f"{APP_NAME}_agent_{ENV_NAME}".replace("-", "_"),
             execution_role=role,
             agent_runtime_artifact=agent_runtime_artifact,
+        )
+
+        # Create a dedicated IAM User for Vercel
+        vercel_user = User(self, "VercelAgentInvoker",
+            user_name=f"{APP_NAME}-vercel-invoker-{ENV_NAME}"
+        )
+
+        # Grant permission to invoke this specific agent alias
+        vercel_user.add_to_policy(PolicyStatement(
+            actions=["bedrock-agentcore:InvokeAgentRuntime"],
+            resources=[runtime.agent_runtime_arn, f"{runtime.agent_runtime_arn}/*"] 
+        ))
+
+        CfnOutput(self, "VercelUserOutput",
+            value=vercel_user.user_name,
+            description="The IAM User Name for Vercel. Create Access Keys for this user in AWS Console."
         )
