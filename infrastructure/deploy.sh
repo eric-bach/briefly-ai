@@ -12,8 +12,5 @@ ENV_NAME=${1:-${ENV_NAME:-dev}}
 
 echo "🚀 Deploying Briefly AI backend for environment: $ENV_NAME"
 
-echo "Executing .venv/Scripts/activate.bat"
-.venv/Scripts/activate.bat
-
 echo "🚀 Deploying Briefly AI backend"
 ENV_NAME=$ENV_NAME cdk deploy --all --profile bach-dev

@@ -28,4 +28,3 @@ AppStack(app, f"{APP_NAME}-app",
 )
 
 app.synth()
-
