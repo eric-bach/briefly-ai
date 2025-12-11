@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Play, Youtube } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const { user, signOut } = useAuthenticator((context) => [context.user]);
@@ -12,6 +14,15 @@ export default function Dashboard() {
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [summary, loading]);
 
   const handleSignOut = () => {
     signOut && signOut();
@@ -175,13 +186,29 @@ export default function Dashboard() {
           </div>
         )}
 
+        {loading && !summary && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+            <div className="space-y-2 pt-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/6" />
+            </div>
+          </div>
+        )}
+
         {summary && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 prose prose-gray max-w-none">
             <h3 className="text-xl font-semibold mb-4 text-gray-900">
               Summary
             </h3>
-            <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-              {summary}
+            <div className="prose prose-red max-w-none">
+              <ReactMarkdown>{summary}</ReactMarkdown>
+              <div ref={messagesEndRef} />
             </div>
           </div>
         )}

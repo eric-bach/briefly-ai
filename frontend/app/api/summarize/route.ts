@@ -60,24 +60,31 @@ export async function POST(req: Request) {
     // const response = await client.send(command);
     // const textResponse = await response.response.transformToString();
 
-    // But usually InvokeAgentRuntimeCommandOutput has `response` which is PayloadPart...
-    // Let's stick closely to the user provided snippet but wrap it for the API route return.
-
-    const textResponse = await response.response?.transformToString();
-
-    if (!textResponse) {
+    if (!response.response) {
       return NextResponse.json(
         { error: "Empty response from agent" },
         { status: 500 }
       );
     }
 
-    // Return the raw text response which contains the SSE stream data
-    // The frontend expects "data: ..." lines.
-    return new NextResponse(textResponse, {
+    // Stream the response directly
+    // @ts-ignore - The SDK types might not perfectly align with Web Streams yet, but the underlying stream is compatible
+    const stream = response.response.transformToWebStream
+      ? response.response.transformToWebStream()
+      : new ReadableStream({
+          async start(controller) {
+            // Fallback for async iterable if transformToWebStream isn't available
+            for await (const chunk of response.response as any) {
+              controller.enqueue(chunk);
+            }
+            controller.close();
+          },
+        });
+
+    return new NextResponse(stream, {
       status: 200,
       headers: {
-        "Content-Type": "text/event-stream",
+        "Content-Type": "text/plain",
       },
     });
   } catch (error: any) {
