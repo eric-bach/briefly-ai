@@ -89,6 +89,8 @@ async def invoke(payload):
     print(f"Received payload: {json.dumps(payload)}")
 
     video_url = payload.get('videoUrl', '')
+    additional_instructions = payload.get('additionalInstructions', '')
+    
     if not video_url:
         yield "Error: Missing video_url parameter"
 
@@ -99,7 +101,12 @@ async def invoke(payload):
             system_prompt=system_instructions,
             tools=[get_video_transcript]
         )    
-        async for event in agent.stream_async(f"Summarize this YouTube video: {video_url}"):
+        
+        user_prompt = f"Summarize this YouTube video: {video_url}"
+        if additional_instructions:
+            user_prompt += f"\n\nAdditional User Instructions:\n{additional_instructions}"
+
+        async for event in agent.stream_async(user_prompt):
             if "data" in event:
                 yield event["data"]
         print("\nAgent completed")

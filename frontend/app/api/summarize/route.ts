@@ -17,7 +17,7 @@ function generateSessionId(length: number): string {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { videoUrl } = body;
+    const { videoUrl, additionalInstructions } = body;
 
     if (!videoUrl) {
       return NextResponse.json({ error: "Missing videoUrl" }, { status: 400 });
@@ -41,7 +41,9 @@ export async function POST(req: Request) {
       runtimeSessionId: generateSessionId(33),
       agentRuntimeArn: agentRuntimeArn,
       qualifier: "DEFAULT",
-      payload: new TextEncoder().encode(JSON.stringify({ videoUrl })),
+      payload: new TextEncoder().encode(
+        JSON.stringify({ videoUrl, additionalInstructions })
+      ),
     };
 
     const command = new InvokeAgentRuntimeCommand(input);

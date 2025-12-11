@@ -3,7 +3,7 @@
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Play, Youtube } from "lucide-react";
+import { Loader2, Play, Youtube, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -11,6 +11,8 @@ export default function Dashboard() {
   const { user, signOut } = useAuthenticator((context) => [context.user]);
   const router = useRouter();
   const [url, setUrl] = useState("");
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +45,10 @@ export default function Dashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ videoUrl: url }),
+        body: JSON.stringify({
+          videoUrl: url,
+          additionalInstructions: customPrompt,
+        }),
       });
 
       if (!response.ok) {
@@ -150,7 +155,7 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 space-y-4">
           <form onSubmit={handleSubmit} className="flex gap-4">
             <input
               type="url"
@@ -178,6 +183,31 @@ export default function Dashboard() {
               )}
             </button>
           </form>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setIsPromptOpen(!isPromptOpen)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              {isPromptOpen ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+              Additional Instructions (Optional)
+            </button>
+            {isPromptOpen && (
+              <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="e.g. 'Don't spoil the ending', 'Focus on the technical details', 'Summarize in bullet points'..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all min-h-[100px] text-sm resize-y"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {error && (
