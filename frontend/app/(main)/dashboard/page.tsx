@@ -62,54 +62,12 @@ export default function Dashboard() {
       }
 
       const decoder = new TextDecoder();
-      let buffer = "";
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
-        const lines = buffer.split("\n");
-        // Keep the last partial line in the buffer
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.trim() === "") continue;
-          if (line.startsWith("data: ")) {
-            try {
-              const dataContent = line.slice(6);
-              // The backend sends a JSON string encoded value
-              const parsed = JSON.parse(dataContent);
-
-              if (typeof parsed === "string") {
-                setSummary((prev) => prev + parsed);
-              } else if (parsed && typeof parsed === "object") {
-                if (parsed.error) {
-                  console.error("Stream error:", parsed);
-                  // Try to extract a readable message
-                  let errorMessage = parsed.error;
-                  if (typeof errorMessage === "string") {
-                    try {
-                      const errorObj = JSON.parse(errorMessage);
-                      if (errorObj.error?.message) {
-                        errorMessage = errorObj.error.message;
-                      }
-                    } catch {
-                      // usage as is
-                    }
-                  } else if (errorMessage.message) {
-                    errorMessage = errorMessage.message;
-                  }
-                  setError(String(errorMessage));
-                }
-              }
-            } catch (e) {
-              console.error("Failed to parse SSE message", line);
-            }
-          }
-        }
+        setSummary((prev) => prev + chunk);
       }
     } catch (err: any) {
       setError(err.message);
