@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Play, Youtube, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [url, setUrl] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
   const [isPromptOpen, setIsPromptOpen] = useState(false);
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasAutoStartedRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -25,49 +27,66 @@ export default function Dashboard() {
     scrollToBottom();
   }, [summary, loading]);
 
+  const generateSummary = useCallback(
+    async (videoUrl: string, instructions: string) => {
+      if (!videoUrl) return;
+
+      setLoading(true);
+      setSummary("");
+      setError("");
+
+      try {
+        const response = await fetch("/api/summarize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            videoUrl,
+            additionalInstructions: instructions,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch summary");
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error("No response body");
+        }
+
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          setSummary((prev) => prev + chunk);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Handle URL query parameter for auto-starting
+  useEffect(() => {
+    const videoUrlParam = searchParams.get("videoUrl");
+    if (videoUrlParam && !hasAutoStartedRef.current) {
+      setUrl(videoUrlParam);
+      hasAutoStartedRef.current = true;
+      generateSummary(videoUrlParam, "");
+    }
+  }, [searchParams, generateSummary]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url) return;
-
-    setLoading(true);
-    setSummary("");
-    setError("");
-
-    try {
-      const response = await fetch("/api/summarize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          videoUrl: url,
-          additionalInstructions: customPrompt,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch summary");
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body");
-      }
-
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        setSummary((prev) => prev + chunk);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    await generateSummary(url, customPrompt);
   };
 
   return (
