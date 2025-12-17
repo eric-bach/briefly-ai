@@ -1,14 +1,13 @@
 "use client";
 
-import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Play, Youtube, ChevronDown, ChevronUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Navbar } from "@/components/Navbar";
 
 export default function Dashboard() {
-  const { user, signOut } = useAuthenticator((context) => [context.user]);
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
@@ -25,11 +24,6 @@ export default function Dashboard() {
   useEffect(() => {
     scrollToBottom();
   }, [summary, loading]);
-
-  const handleSignOut = () => {
-    signOut && signOut();
-    router.push("/");
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,25 +72,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50">
-      <nav className="w-full bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center fixed top-0 left-0 z-10">
-        <div className="flex items-center gap-2 font-bold text-xl text-gray-900">
-          <div className="p-1.5 bg-red-100 rounded-lg">
-            <Youtube className="w-5 h-5 text-red-600" />
-          </div>
-          Briefly AI
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 hidden sm:block">
-            {user?.signInDetails?.loginId}
-          </span>
-          <button
-            onClick={handleSignOut}
-            className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="w-full max-w-3xl space-y-8 pt-32 p-8">
         <div className="text-center space-y-4">
