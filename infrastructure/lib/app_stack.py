@@ -27,7 +27,7 @@ class AppStack(Stack):
         )
 
         agent_runtime_artifact = AgentRuntimeArtifact.from_asset(
-            directory="../backend-cdk/agent_deployment",
+            directory="../backend/cdk",
             platform=Platform.LINUX_ARM64
         )
 
