@@ -16,6 +16,22 @@ load_dotenv()
 # Ensure backend root is in python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Monkey patch BedrockAgentCoreApp to avoid "data: " prefix and quotes for strings
+def _raw_convert_to_sse(self, obj) -> bytes:
+    if isinstance(obj, str):
+        # Return raw bytes for strings
+        return obj.encode("utf-8")
+    
+    # Fallback for other types
+    try:    
+        json_string = json.dumps(obj, ensure_ascii=False)
+        sse_data = f"data: {json_string}\n\n"
+        return sse_data.encode("utf-8")
+    except:
+        return str(obj).encode("utf-8")
+
+BedrockAgentCoreApp._convert_to_sse = _raw_convert_to_sse
+
 system_instructions = """
 You are a YouTube Video Summarizer Agent.
 Your goal is to help users understand the content of YouTube videos without watching them.
@@ -27,15 +43,15 @@ When a user provides a YouTube video URL:
 4. If you cannot get the transcript, apologize and explain why (e.g., no subtitles available).
 """
 
-model = GeminiModel(
-    client_args={
-        "api_key": os.environ.get("GEMINI_API_KEY"),
-    },
-    model_id=os.environ.get("MODEL_ID")
-)
-# model = BedrockModel(
-#     model_id='us.amazon.nova-2-lite-v1:0'
+# model = GeminiModel(
+#     client_args={
+#         "api_key": os.environ.get("GEMINI_API_KEY"),
+#     },
+#     model_id=os.environ.get("MODEL_ID")
 # )
+model = BedrockModel(
+    model_id='us.amazon.nova-2-lite-v1:0'
+)
 
 app = BedrockAgentCoreApp()
 
