@@ -1,0 +1,20 @@
+# Plan: Unified Dashboard with Smart Input
+
+## Phase 1: Analysis & Infrastructure [checkpoint: ab23c74]
+- [x] Task: Analyze existing `YouTubeViewer` component and API routes (`api/youtube/videos`) to understand how channel searching works.
+    - *Findings: `YouTubeViewer` uses `/api/youtube/videos` which accepts `channelId`. The API route handles IDs, handles (`@`), and search terms. The dashboard currently enforces `type="url"` input. Needs to change to `type="text"` to support non-URL channel identifiers.*
+- [x] Task: Define the "Smart Input" logic (regex/parsing) to distinguish between Video URLs and Channel identifiers. d65ee34
+- [x] Task: Conductor - User Manual Verification 'Analysis & Infrastructure' (Protocol in workflow.md)
+
+## Phase 2: Implementation [checkpoint: c6d3aa8]
+- [x] Task: Update `/dashboard/page.tsx` state management to handle both "Video Mode" and "Channel Mode". f15fb93
+- [x] Task: Implement the smart input parsing logic in the frontend. f15fb93
+- [x] Task: Integrate the channel video listing UI (from `/youtube/page.tsx`) into the dashboard. f15fb93
+- [x] Task: Ensure prompt customization settings correctly apply to videos selected from a channel list. f15fb93 100914d
+- [x] Task: Conductor - User Manual Verification 'Implementation' (Protocol in workflow.md)
+
+## Phase 3: Cleanup & Finalization [checkpoint: 51f77f9]
+- [x] Task: Remove the `/frontend/app/(main)/youtube` directory. 91c7359
+- [x] Task: Update any navigation components (e.g., `Navbar.tsx`) to remove links to the old YouTube page. 4343045
+- [x] Task: Verify the "No Dark Mode" and "Clean/Modern" aesthetic is maintained.
+- [x] Task: Conductor - User Manual Verification 'Cleanup & Finalization' (Protocol in workflow.md)
