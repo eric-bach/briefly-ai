@@ -40,16 +40,6 @@ export function Navbar() {
           >
             Summarizer
           </Link>
-          <Link
-            href="/youtube"
-            className={`text-sm font-medium transition-colors ${
-              isActive("/youtube")
-                ? "text-red-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Videos
-          </Link>
         </div>
       </div>
       <div className="flex items-center gap-4">
