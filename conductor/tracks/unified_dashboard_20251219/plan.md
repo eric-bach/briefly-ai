@@ -6,12 +6,12 @@
 - [x] Task: Define the "Smart Input" logic (regex/parsing) to distinguish between Video URLs and Channel identifiers. d65ee34
 - [x] Task: Conductor - User Manual Verification 'Analysis & Infrastructure' (Protocol in workflow.md)
 
-## Phase 2: Implementation
-- [ ] Task: Update `/dashboard/page.tsx` state management to handle both "Video Mode" and "Channel Mode".
-- [ ] Task: Implement the smart input parsing logic in the frontend.
-- [ ] Task: Integrate the channel video listing UI (from `/youtube/page.tsx`) into the dashboard.
-- [ ] Task: Ensure prompt customization settings correctly apply to videos selected from a channel list.
-- [ ] Task: Conductor - User Manual Verification 'Implementation' (Protocol in workflow.md)
+## Phase 2: Implementation [checkpoint: c6d3aa8]
+- [x] Task: Update `/dashboard/page.tsx` state management to handle both "Video Mode" and "Channel Mode". f15fb93
+- [x] Task: Implement the smart input parsing logic in the frontend. f15fb93
+- [x] Task: Integrate the channel video listing UI (from `/youtube/page.tsx`) into the dashboard. f15fb93
+- [x] Task: Ensure prompt customization settings correctly apply to videos selected from a channel list. f15fb93 100914d
+- [x] Task: Conductor - User Manual Verification 'Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Cleanup & Finalization
 - [ ] Task: Remove the `/frontend/app/(main)/youtube` directory.
