@@ -14,7 +14,7 @@
 - [x] Task: Conductor - User Manual Verification 'Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Cleanup & Finalization
-- [ ] Task: Remove the `/frontend/app/(main)/youtube` directory.
+- [~] Task: Remove the `/frontend/app/(main)/youtube` directory.
 - [ ] Task: Update any navigation components (e.g., `Navbar.tsx`) to remove links to the old YouTube page.
 - [ ] Task: Verify the "No Dark Mode" and "Clean/Modern" aesthetic is maintained.
 - [ ] Task: Conductor - User Manual Verification 'Cleanup & Finalization' (Protocol in workflow.md)
