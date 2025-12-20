@@ -14,7 +14,7 @@ Briefly AI is a YouTube Video Summarizer Agent.
 - **Efficiency:** Drastically reduces the time required to consume video content by highlighting only what matters.
 
 ## Key Features
-- **Video Input:** Simple URL input field for processing YouTube videos.
+- **Smart Input:** Unified input field for processing YouTube videos or discovering channels.
 - **Spoiler-Free Mode:** A toggleable mode that hides spoilers.
 - **Recommendation Engine:** Analyzes content quality and relevance to assign a "Recommendation Score," advising users if the full video is worth their time.
 - **Structured Summaries:** Delivers clear, structured summaries directly in the dashboard.
