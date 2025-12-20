@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Loader2,
   Play,
@@ -41,7 +41,6 @@ interface VideoItem {
 }
 
 export default function Dashboard() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"video" | "channel">("video");
@@ -64,147 +63,97 @@ export default function Dashboard() {
     scrollToBottom();
   }, [summary, loading]);
 
-    // Sync mode with input type
-
-    useEffect(() => {
-
-      if (!input) return;
-
-      const parsed = parseInput(input);
-
-      setMode(parsed.type);
-
-    }, [input]);
-
-  
-
-    const fetchChannelVideos = useCallback(
-
-      async (channelId: string, token?: string) => {
-
-        if (!channelId) return;
-
-  
-
-        setLoading(true);
-
-        setError("");
-
-        if (!token) {
-
-          setVideos([]);
-
-          setSummary(""); // Clear summary when fetching a new channel
-
-        }
-
-  
-
-        try {
-
-          let url = `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}`;
-
-          if (token) {
-
-            url += `&pageToken=${token}`;
-
-          }
-
-  
-
-          const response = await fetch(url);
-
-          const data = await response.json();
-
-  
-
-          if (!response.ok) {
-
-            throw new Error(data.error || "Failed to fetch videos");
-
-          }
-
-  
-
-          const newVideos = data.items || [];
-
-          setVideos((prev) => {
-
-            if (!token) return newVideos;
-
-            const existingIds = new Set(prev.map((v) => v.id.videoId));
-
-            const uniqueNewVideos = newVideos.filter(
-
-              (v: VideoItem) => !existingIds.has(v.id.videoId)
-
-            );
-
-            return [...prev, ...uniqueNewVideos];
-
-          });
-
-          setNextPageToken(data.nextPageToken || null);
-
-        } catch (err: any) {
-
-          setError(err.message);
-
-        } finally {
-
-          setLoading(false);
-
-        }
-
-      },
-
-      []
-
-    );
-
-  
-
-    // Infinite scroll observer
-
-    useEffect(() => {
-
-      const observer = new IntersectionObserver(
-
-        (entries) => {
-
-          if (entries[0].isIntersecting && nextPageToken && !loading && mode === 'channel') {
-
-            const parsed = parseInput(input);
-
-            fetchChannelVideos(parsed.value, nextPageToken);
-
-          }
-
-        },
-
-        { threshold: 1.0 }
-
-      );
-
-  
-
-      if (observerTarget.current) {
-
-        observer.observe(observerTarget.current);
-
+  useEffect(() => {
+    if (!input) return;
+
+    const parsed = parseInput(input);
+    setMode(parsed.type);
+  }, [input]);
+
+  const fetchChannelVideos = useCallback(
+    async (channelId: string, token?: string) => {
+      if (!channelId) {
+        return;
       }
 
-  
+      setLoading(true);
+      setError("");
 
-      return () => observer.disconnect();
+      if (!token) {
+        setVideos([]);
+        setSummary(""); // Clear summary when fetching a new channel
+      }
 
-    }, [nextPageToken, loading, mode, input, fetchChannelVideos]);
+      try {
+        let url = `/api/youtube/videos?channelId=${encodeURIComponent(
+          channelId
+        )}`;
 
-  
+        if (token) {
+          url += `&pageToken=${token}`;
+        }
 
-    const generateSummary = useCallback(
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch videos");
+        }
+
+        const newVideos = data.items || [];
+
+        setVideos((prev) => {
+          if (!token) return newVideos;
+
+          const existingIds = new Set(prev.map((v) => v.id.videoId));
+          const uniqueNewVideos = newVideos.filter(
+            (v: VideoItem) => !existingIds.has(v.id.videoId)
+          );
+
+          return [...prev, ...uniqueNewVideos];
+        });
+
+        setNextPageToken(data.nextPageToken || null);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          nextPageToken &&
+          !loading &&
+          mode === "channel"
+        ) {
+          const parsed = parseInput(input);
+
+          fetchChannelVideos(parsed.value, nextPageToken);
+        }
+      },
+
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [nextPageToken, loading, mode, input, fetchChannelVideos]);
+
+  const generateSummary = useCallback(
     async (videoUrl: string, instructions: string) => {
-      if (!videoUrl) return;
+      if (!videoUrl) {
+        return;
+      }
 
       setLoading(true);
       setSummary("");
@@ -253,6 +202,7 @@ export default function Dashboard() {
   // Handle URL query parameter for auto-starting
   useEffect(() => {
     const videoUrlParam = searchParams.get("videoUrl");
+
     if (videoUrlParam && !hasAutoStartedRef.current) {
       const parsed = parseInput(videoUrlParam);
       setInput(videoUrlParam);
