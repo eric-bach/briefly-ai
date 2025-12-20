@@ -2,7 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Play, Youtube, ChevronDown, ChevronUp, Search } from "lucide-react";
+import {
+  Loader2,
+  Play,
+  Youtube,
+  ChevronDown,
+  ChevronUp,
+  Search,
+} from "lucide-react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +44,7 @@ export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<'video' | 'channel'>('video');
+  const [mode, setMode] = useState<"video" | "channel">("video");
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
@@ -57,76 +64,145 @@ export default function Dashboard() {
     scrollToBottom();
   }, [summary, loading]);
 
-  // Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && nextPageToken && !loading && mode === 'channel') {
-          const parsed = parseInput(input);
-          fetchChannelVideos(parsed.value, nextPageToken);
+    // Sync mode with input type
+
+    useEffect(() => {
+
+      if (!input) return;
+
+      const parsed = parseInput(input);
+
+      setMode(parsed.type);
+
+    }, [input]);
+
+  
+
+    const fetchChannelVideos = useCallback(
+
+      async (channelId: string, token?: string) => {
+
+        if (!channelId) return;
+
+  
+
+        setLoading(true);
+
+        setError("");
+
+        if (!token) {
+
+          setVideos([]);
+
+          setSummary(""); // Clear summary when fetching a new channel
+
         }
+
+  
+
+        try {
+
+          let url = `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}`;
+
+          if (token) {
+
+            url += `&pageToken=${token}`;
+
+          }
+
+  
+
+          const response = await fetch(url);
+
+          const data = await response.json();
+
+  
+
+          if (!response.ok) {
+
+            throw new Error(data.error || "Failed to fetch videos");
+
+          }
+
+  
+
+          const newVideos = data.items || [];
+
+          setVideos((prev) => {
+
+            if (!token) return newVideos;
+
+            const existingIds = new Set(prev.map((v) => v.id.videoId));
+
+            const uniqueNewVideos = newVideos.filter(
+
+              (v: VideoItem) => !existingIds.has(v.id.videoId)
+
+            );
+
+            return [...prev, ...uniqueNewVideos];
+
+          });
+
+          setNextPageToken(data.nextPageToken || null);
+
+        } catch (err: any) {
+
+          setError(err.message);
+
+        } finally {
+
+          setLoading(false);
+
+        }
+
       },
-      { threshold: 1.0 }
+
+      []
+
     );
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
+  
 
-    return () => observer.disconnect();
-  }, [nextPageToken, loading, mode, input, fetchChannelVideos]);
+    // Infinite scroll observer
 
-  // Sync mode with input type
-  useEffect(() => {
-    if (!input) return;
-    const parsed = parseInput(input);
-    setMode(parsed.type);
-  }, [input]);
+    useEffect(() => {
 
-  const fetchChannelVideos = useCallback(
-    async (channelId: string, token?: string) => {
-      if (!channelId) return;
+      const observer = new IntersectionObserver(
 
-      setLoading(true);
-      setError("");
-      if (!token) {
-        setVideos([]);
-        setSummary(""); // Clear summary when fetching a new channel
+        (entries) => {
+
+          if (entries[0].isIntersecting && nextPageToken && !loading && mode === 'channel') {
+
+            const parsed = parseInput(input);
+
+            fetchChannelVideos(parsed.value, nextPageToken);
+
+          }
+
+        },
+
+        { threshold: 1.0 }
+
+      );
+
+  
+
+      if (observerTarget.current) {
+
+        observer.observe(observerTarget.current);
+
       }
 
-      try {
-        let url = `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}`;
-        if (token) {
-          url += `&pageToken=${token}`;
-        }
+  
 
-        const response = await fetch(url);
-        const data = await response.json();
+      return () => observer.disconnect();
 
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch videos");
-        }
+    }, [nextPageToken, loading, mode, input, fetchChannelVideos]);
 
-        const newVideos = data.items || [];
-        setVideos((prev) => {
-          if (!token) return newVideos;
-          const existingIds = new Set(prev.map((v) => v.id.videoId));
-          const uniqueNewVideos = newVideos.filter(
-            (v: VideoItem) => !existingIds.has(v.id.videoId)
-          );
-          return [...prev, ...uniqueNewVideos];
-        });
-        setNextPageToken(data.nextPageToken || null);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  
 
-  const generateSummary = useCallback(
+    const generateSummary = useCallback(
     async (videoUrl: string, instructions: string) => {
       if (!videoUrl) return;
 
@@ -182,8 +258,8 @@ export default function Dashboard() {
       setInput(videoUrlParam);
       setMode(parsed.type);
       hasAutoStartedRef.current = true;
-      
-      if (parsed.type === 'video') {
+
+      if (parsed.type === "video") {
         generateSummary(videoUrlParam, "");
       } else {
         fetchChannelVideos(parsed.value);
@@ -196,10 +272,11 @@ export default function Dashboard() {
     if (!input) return;
 
     const parsed = parseInput(input);
-    if (parsed.type === 'video') {
-      const videoUrl = input.includes('youtube.com') || input.includes('youtu.be') 
-        ? input 
-        : `https://www.youtube.com/watch?v=${parsed.value}`;
+    if (parsed.type === "video") {
+      const videoUrl =
+        input.includes("youtube.com") || input.includes("youtu.be")
+          ? input
+          : `https://www.youtube.com/watch?v=${parsed.value}`;
       await generateSummary(videoUrl, customPrompt);
     } else {
       await fetchChannelVideos(parsed.value);
@@ -209,7 +286,7 @@ export default function Dashboard() {
   const handleVideoSelect = async (videoId: string) => {
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
     setInput(videoUrl);
-    setMode('video');
+    setMode("video");
     await generateSummary(videoUrl, customPrompt);
   };
 
@@ -228,7 +305,8 @@ export default function Dashboard() {
             AI Video Briefly
           </h1>
           <p className="text-lg text-gray-600">
-            Paste a YouTube link or Channel name to get an instant AI-powered summary
+            Paste a YouTube link or Channel name to get an instant AI-powered
+            summary
           </p>
         </div>
 
@@ -250,12 +328,16 @@ export default function Dashboard() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {mode === 'video' ? 'Summarizing...' : 'Fetching...'}
+                  {mode === "video" ? "Summarizing..." : "Fetching..."}
                 </>
               ) : (
                 <>
-                  {mode === 'video' ? <Play className="w-5 h-5 fill-current" /> : <Search className="w-5 h-5" />}
-                  {mode === 'video' ? 'Summarize' : 'Fetch'}
+                  {mode === "video" ? (
+                    <Play className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Search className="w-5 h-5" />
+                  )}
+                  {mode === "video" ? "Summarize" : "Fetch"}
                 </>
               )}
             </button>
@@ -351,19 +433,17 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
-            
+
             {loading && (
               <div className="flex justify-center py-4">
                 <Loader2 className="w-6 h-6 animate-spin text-red-600" />
               </div>
             )}
-            
+
             <div ref={observerTarget} className="h-4 w-full" />
           </div>
         )}
       </div>
     </div>
   );
-}
-
 }
