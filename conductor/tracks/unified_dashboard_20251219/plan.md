@@ -13,8 +13,8 @@
 - [x] Task: Ensure prompt customization settings correctly apply to videos selected from a channel list. f15fb93 100914d
 - [x] Task: Conductor - User Manual Verification 'Implementation' (Protocol in workflow.md)
 
-## Phase 3: Cleanup & Finalization
-- [~] Task: Remove the `/frontend/app/(main)/youtube` directory.
-- [ ] Task: Update any navigation components (e.g., `Navbar.tsx`) to remove links to the old YouTube page.
-- [ ] Task: Verify the "No Dark Mode" and "Clean/Modern" aesthetic is maintained.
-- [ ] Task: Conductor - User Manual Verification 'Cleanup & Finalization' (Protocol in workflow.md)
+## Phase 3: Cleanup & Finalization [checkpoint: 51f77f9]
+- [x] Task: Remove the `/frontend/app/(main)/youtube` directory. 91c7359
+- [x] Task: Update any navigation components (e.g., `Navbar.tsx`) to remove links to the old YouTube page. 4343045
+- [x] Task: Verify the "No Dark Mode" and "Clean/Modern" aesthetic is maintained.
+- [x] Task: Conductor - User Manual Verification 'Cleanup & Finalization' (Protocol in workflow.md)
