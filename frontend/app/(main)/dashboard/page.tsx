@@ -2,21 +2,51 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Play, Youtube, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Play, Youtube, ChevronDown, ChevronUp, Search } from "lucide-react";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/Navbar";
+import { parseInput } from "@/lib/youtube-utils";
+
+interface VideoSnippet {
+  publishedAt: string;
+  channelId: string;
+  title: string;
+  description: string;
+  thumbnails: {
+    medium: {
+      url: string;
+    };
+    high: {
+      url: string;
+    };
+  };
+  channelTitle: string;
+}
+
+interface VideoItem {
+  id: {
+    kind: string;
+    videoId: string;
+  };
+  snippet: VideoSnippet;
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [url, setUrl] = useState("");
+  const [input, setInput] = useState("");
+  const [mode, setMode] = useState<'video' | 'channel'>('video');
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const observerTarget = useRef<HTMLDivElement>(null);
   const hasAutoStartedRef = useRef(false);
 
   const scrollToBottom = () => {
@@ -27,6 +57,75 @@ export default function Dashboard() {
     scrollToBottom();
   }, [summary, loading]);
 
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextPageToken && !loading && mode === 'channel') {
+          const parsed = parseInput(input);
+          fetchChannelVideos(parsed.value, nextPageToken);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [nextPageToken, loading, mode, input, fetchChannelVideos]);
+
+  // Sync mode with input type
+  useEffect(() => {
+    if (!input) return;
+    const parsed = parseInput(input);
+    setMode(parsed.type);
+  }, [input]);
+
+  const fetchChannelVideos = useCallback(
+    async (channelId: string, token?: string) => {
+      if (!channelId) return;
+
+      setLoading(true);
+      setError("");
+      if (!token) {
+        setVideos([]);
+        setSummary(""); // Clear summary when fetching a new channel
+      }
+
+      try {
+        let url = `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}`;
+        if (token) {
+          url += `&pageToken=${token}`;
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch videos");
+        }
+
+        const newVideos = data.items || [];
+        setVideos((prev) => {
+          if (!token) return newVideos;
+          const existingIds = new Set(prev.map((v) => v.id.videoId));
+          const uniqueNewVideos = newVideos.filter(
+            (v: VideoItem) => !existingIds.has(v.id.videoId)
+          );
+          return [...prev, ...uniqueNewVideos];
+        });
+        setNextPageToken(data.nextPageToken || null);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
   const generateSummary = useCallback(
     async (videoUrl: string, instructions: string) => {
       if (!videoUrl) return;
@@ -34,6 +133,7 @@ export default function Dashboard() {
       setLoading(true);
       setSummary("");
       setError("");
+      setVideos([]); // Clear videos when starting a summary
 
       try {
         const response = await fetch("/api/summarize", {
@@ -78,15 +178,39 @@ export default function Dashboard() {
   useEffect(() => {
     const videoUrlParam = searchParams.get("videoUrl");
     if (videoUrlParam && !hasAutoStartedRef.current) {
-      setUrl(videoUrlParam);
+      const parsed = parseInput(videoUrlParam);
+      setInput(videoUrlParam);
+      setMode(parsed.type);
       hasAutoStartedRef.current = true;
-      generateSummary(videoUrlParam, "");
+      
+      if (parsed.type === 'video') {
+        generateSummary(videoUrlParam, "");
+      } else {
+        fetchChannelVideos(parsed.value);
+      }
     }
-  }, [searchParams, generateSummary]);
+  }, [searchParams, generateSummary, fetchChannelVideos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await generateSummary(url, customPrompt);
+    if (!input) return;
+
+    const parsed = parseInput(input);
+    if (parsed.type === 'video') {
+      const videoUrl = input.includes('youtube.com') || input.includes('youtu.be') 
+        ? input 
+        : `https://www.youtube.com/watch?v=${parsed.value}`;
+      await generateSummary(videoUrl, customPrompt);
+    } else {
+      await fetchChannelVideos(parsed.value);
+    }
+  };
+
+  const handleVideoSelect = async (videoId: string) => {
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    setInput(videoUrl);
+    setMode('video');
+    await generateSummary(videoUrl, customPrompt);
   };
 
   return (
@@ -101,20 +225,20 @@ export default function Dashboard() {
             </div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900">
-            Video Summarizer
+            AI Video Briefly
           </h1>
           <p className="text-lg text-gray-600">
-            Paste a YouTube link below to get an instant AI-powered summary
+            Paste a YouTube link or Channel name to get an instant AI-powered summary
           </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 space-y-4">
           <form onSubmit={handleSubmit} className="flex gap-4">
             <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Paste a YouTube link or Channel name..."
               className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
               required
             />
@@ -126,12 +250,12 @@ export default function Dashboard() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Summarizing...
+                  {mode === 'video' ? 'Summarizing...' : 'Fetching...'}
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5 fill-current" />
-                  Summarize
+                  {mode === 'video' ? <Play className="w-5 h-5 fill-current" /> : <Search className="w-5 h-5" />}
+                  {mode === 'video' ? 'Summarize' : 'Fetch'}
                 </>
               )}
             </button>
@@ -169,7 +293,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {loading && !summary && (
+        {loading && !summary && videos.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-4">
             <Skeleton className="h-8 w-1/3" />
             <div className="space-y-2">
@@ -195,7 +319,51 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {videos.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Latest from {videos[0].snippet.channelTitle}
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              {videos.map((video) => (
+                <button
+                  key={video.id.videoId}
+                  onClick={() => handleVideoSelect(video.id.videoId)}
+                  className="group text-left block space-y-3 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-red-100 transition-all"
+                >
+                  <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
+                    <Image
+                      src={video.snippet.thumbnails.high.url}
+                      alt={video.snippet.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-semibold line-clamp-2 leading-tight group-hover:text-red-600 transition-colors">
+                      {video.snippet.title}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {new Date(video.snippet.publishedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            
+            {loading && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+              </div>
+            )}
+            
+            <div ref={observerTarget} className="h-4 w-full" />
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
 }
