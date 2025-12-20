@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Unified Dashboard with Smart Input
+## [~] Track: Unified Dashboard with Smart Input
 *Link: [./conductor/tracks/unified_dashboard_20251219/](./conductor/tracks/unified_dashboard_20251219/)*
