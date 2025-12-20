@@ -1,10 +1,10 @@
 # Plan: Unified Dashboard with Smart Input
 
-## Phase 1: Analysis & Infrastructure
+## Phase 1: Analysis & Infrastructure [checkpoint: ab23c74]
 - [x] Task: Analyze existing `YouTubeViewer` component and API routes (`api/youtube/videos`) to understand how channel searching works.
     - *Findings: `YouTubeViewer` uses `/api/youtube/videos` which accepts `channelId`. The API route handles IDs, handles (`@`), and search terms. The dashboard currently enforces `type="url"` input. Needs to change to `type="text"` to support non-URL channel identifiers.*
 - [x] Task: Define the "Smart Input" logic (regex/parsing) to distinguish between Video URLs and Channel identifiers. d65ee34
-- [ ] Task: Conductor - User Manual Verification 'Analysis & Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Analysis & Infrastructure' (Protocol in workflow.md)
 
 ## Phase 2: Implementation
 - [ ] Task: Update `/dashboard/page.tsx` state management to handle both "Video Mode" and "Channel Mode".
