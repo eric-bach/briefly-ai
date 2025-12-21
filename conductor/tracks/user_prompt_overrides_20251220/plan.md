@@ -14,9 +14,9 @@
 - [x] Task: Integrate the "Skip for this summary" toggle state into the dashboard. a1d93b3
 - [x] Task: Conductor - User Manual Verification 'Frontend - Retrieval & Precedence Logic' (Protocol in workflow.md) 5267f78
 
-## Phase 3: Frontend - UI & Persistence
-- [ ] Task: Implement change detection logic to trigger the "Save" toast when a custom prompt is used.
-- [ ] Task: Implement the toast notification with "Save" action and selection (Video vs Channel).
-- [ ] Task: Update the "Prompt Customization" UI to show an "Override Active" badge or indicator when loaded.
-- [ ] Task: Verify end-to-end flow: custom prompt -> save -> refresh -> auto-load.
-- [ ] Task: Conductor - User Manual Verification 'Frontend - UI & Persistence' (Protocol in workflow.md)
+## Phase 3: Frontend - UI & Persistence [checkpoint: 75ca4fa]
+- [x] Task: Implement change detection logic to trigger the "Save" toast when a custom prompt is used. 8f78fe3
+- [x] Task: Implement the toast notification with "Save" action and selection (Video vs Channel). f18950c
+- [x] Task: Update the "Prompt Customization" UI to show an "Override Active" badge or indicator when loaded. e7ca170
+- [x] Task: Verify end-to-end flow: custom prompt -> save -> refresh -> auto-load. ca2abaf
+- [x] Task: Conductor - User Manual Verification 'Frontend - UI & Persistence' (Protocol in workflow.md) 75ca4fa
