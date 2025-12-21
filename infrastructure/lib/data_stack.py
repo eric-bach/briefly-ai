@@ -3,6 +3,7 @@ from aws_cdk import (
     Stack,
     aws_s3 as s3,
     aws_cognito as cognito,
+    aws_dynamodb as dynamodb,
     aws_ec2 as ec2,
     CfnOutput,
     RemovalPolicy,
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 @dataclass
 class DataStackResources:
     vpc: ec2.Vpc
+    table: dynamodb.Table
 
 class DataStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, app_name: str, env_name: str, **kwargs) -> None:
@@ -82,6 +84,27 @@ class DataStack(Stack):
         )
 
         #
+        # Amazon DynamoDB
+        #
+
+        # Create a DynamoDB table for user prompt overrides
+        table = dynamodb.Table(
+            self,
+            "PromptOverridesTable",
+            table_name=f"{APP_NAME}-data-{ENV_NAME}",
+            partition_key=dynamodb.Attribute(
+                name="userId",
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="targetId",
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+
+        #
         # Outputs
         #
 
@@ -101,6 +124,15 @@ class DataStack(Stack):
             description=f"{APP_NAME} Cognito React App Client ID",
             export_name=f"{APP_NAME}-cognito-react-app-client-id"
         )
+
+        # Output the DynamoDB Table Name
+        CfnOutput(
+            self,
+            "PromptOverridesTableName",
+            value=table.table_name,
+            description=f"{APP_NAME} Prompt Overrides DynamoDB Table Name",
+            export_name=f"{APP_NAME}-prompt-overrides-table-name"
+        )
         
         #
         # Properties
@@ -108,4 +140,5 @@ class DataStack(Stack):
 
         self.resources = DataStackResources(
             vpc=vpc,
+            table=table,
         )

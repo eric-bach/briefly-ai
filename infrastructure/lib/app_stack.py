@@ -4,9 +4,10 @@ from aws_cdk.aws_iam import Role, PolicyStatement, ManagedPolicy, ServicePrincip
 from aws_cdk.aws_ecr_assets import Platform
 from constructs import Construct
 from dotenv import load_dotenv
+from .data_stack import DataStack
 
 class AppStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, app_name: str, env_name: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, app_name: str, env_name: str, data_stack: DataStack, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         load_dotenv()
@@ -47,6 +48,9 @@ class AppStack(Stack):
             actions=["bedrock-agentcore:InvokeAgentRuntime"],
             resources=[runtime.agent_runtime_arn, f"{runtime.agent_runtime_arn}/*"] 
         ))
+
+        # Grant DynamoDB access to Vercel User
+        data_stack.resources.table.grant_read_write_data(vercel_user)
 
         CfnOutput(self, "VercelUserOutput",
             value=vercel_user.user_name,
