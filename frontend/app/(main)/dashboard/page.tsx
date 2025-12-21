@@ -236,7 +236,8 @@ export default function Dashboard() {
       setShowSaveToast(false); // Reset toast
 
       // Check if we should prompt to save (logic: has started = true now)
-      if (shouldShowSavePrompt(customPrompt, originalOverride, true)) {
+      // Use 'instructions' arg as it's the latest customPrompt value passed from handleSubmit
+      if (shouldShowSavePrompt(instructions, originalOverride, true)) {
         setShowSaveToast(true);
       }
 
@@ -276,7 +277,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     },
-    []
+    [originalOverride]
   );
 
   // Handle URL query parameter for auto-starting
