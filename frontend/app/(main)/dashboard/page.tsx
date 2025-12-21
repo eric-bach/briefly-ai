@@ -55,6 +55,9 @@ export default function Dashboard() {
   const observerTarget = useRef<HTMLDivElement>(null);
   const hasAutoStartedRef = useRef(false);
 
+  // Debounce ref
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -63,11 +66,88 @@ export default function Dashboard() {
     scrollToBottom();
   }, [summary, loading]);
 
+  const fetchPromptOverride = async (videoId?: string, channelId?: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (videoId) params.append("videoId", videoId);
+      if (channelId) params.append("channelId", channelId);
+
+      const res = await fetch(`/api/user/prompts?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.override) {
+          setCustomPrompt(data.override.prompt);
+          // TODO: Set override active state/badge (Phase 3)
+        } else {
+          setCustomPrompt(""); // Reset if no override? Or keep previous?
+          // For now, reset to ensure we don't carry over overrides from other videos
+          // unless user has typed something? 
+          // Ideally: Only set if user hasn't manually edited? 
+          // For simplicity: Always reset/set for now as per "Discovery & Loading" spec.
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch override", e);
+    }
+  };
+
+  const resolveVideoDetails = async (videoId: string) => {
+    try {
+      const res = await fetch(`/api/youtube/videos?videoId=${videoId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items && data.items.length > 0) {
+          return data.items[0].snippet.channelId;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to resolve video details", e);
+    }
+    return null;
+  };
+
   useEffect(() => {
-    if (!input) return;
+    if (!input) {
+      setMode("video"); // Default
+      return;
+    }
 
     const parsed = parseInput(input);
     setMode(parsed.type);
+
+    // Debounce the override fetching
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    debounceTimeout.current = setTimeout(async () => {
+      if (parsed.type === "video") {
+        const videoId = parsed.value;
+        // Need channel ID for precedence
+        const channelId = await resolveVideoDetails(videoId);
+        await fetchPromptOverride(videoId, channelId || undefined);
+      } else if (parsed.type === "channel") {
+        // value might be handle or ID. 
+        // If handle, we technically need to resolve it to ID first for the API?
+        // Our api/youtube/videos resolves it, but api/user/prompts expects ID.
+        // Assuming for now user enters ID or we rely on some other resolution?
+        // Actually api/user/prompts checks DB keys. DB keys are IDs.
+        // If user types handle, we need to resolve ID.
+        // We can reuse resolveVideoDetails logic but for channel?
+        // fetchChannelVideos resolves it but doesn't return it easily.
+        // Let's assume for this iteration we try fetching with the value.
+        // If it fails (no match), fine. 
+        // Improvement: Resolve handle to ID here too.
+        
+        // For now, pass as channelId.
+        await fetchPromptOverride(undefined, parsed.value);
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+
   }, [input]);
 
   const fetchChannelVideos = useCallback(

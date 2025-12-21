@@ -2,14 +2,8 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const input = searchParams.get("channelId"); // Keeping query param name for compatibility
-
-  if (!input) {
-    return NextResponse.json(
-      { error: "Channel Name or ID is required" },
-      { status: 400 }
-    );
-  }
+  const channelInput = searchParams.get("channelId");
+  const videoInput = searchParams.get("videoId");
 
   const apiKey = process.env.YOUTUBE_API_KEY;
 
@@ -21,25 +15,49 @@ export async function GET(request: Request) {
   }
 
   try {
-    let channelId = input;
+    // 1. Handle Video ID Lookup
+    if (videoInput) {
+      const videosApiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoInput}&key=${apiKey}`;
+      const response = await fetch(videosApiUrl);
 
+      if (!response.ok) {
+         const errorData = await response.json();
+         return NextResponse.json(
+           { error: errorData.error.message || "Failed to fetch video details" },
+           { status: response.status }
+         );
+      }
+      
+      const data = await response.json();
+      return NextResponse.json(data);
+    }
+
+    // 2. Handle Channel Lookup
+    if (!channelInput) {
+      return NextResponse.json(
+        { error: "Channel Name/ID or Video ID is required" },
+        { status: 400 }
+      );
+    }
+    
+    let channelId = channelInput;
     // Check if input looks like a Channel ID (starts with UC, ~24 chars)
     // Precise regex: ^UC[\w-]{21}[AQgw]$ but a simpler check is often enough
-    const isChannelId = /^UC[\w-]{22}$/.test(input);
+    const isChannelId = /^UC[\w-]{22}$/.test(channelInput);
 
     if (!isChannelId) {
       // Try to resolve handle or name
       let resolveUrl = "";
 
-      if (input.startsWith("@")) {
+      if (channelInput.startsWith("@")) {
         // Resolve Handle
         resolveUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(
-          input
+          channelInput
         )}&key=${apiKey}`;
       } else {
         // Search by name
         resolveUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(
-          input
+          channelInput
         )}&key=${apiKey}&maxResults=1`;
       }
 
@@ -64,7 +82,7 @@ export async function GET(request: Request) {
       }
 
       // Extract ID based on endpoint used
-      if (input.startsWith("@")) {
+      if (channelInput.startsWith("@")) {
         channelId = resolveData.items[0].id;
       } else {
         channelId = resolveData.items[0].id.channelId;

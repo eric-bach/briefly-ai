@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPromptOverride, savePromptOverride, PromptOverride } from "@/lib/db";
+import { resolvePromptOverride } from "@/lib/prompt-utils";
 
 // TODO: Implement proper server-side authentication with Amplify
 const getUserId = async (req: NextRequest) => {
@@ -10,13 +11,25 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const targetId = searchParams.get("targetId");
-
-    if (!targetId) {
-      return NextResponse.json({ error: "Missing targetId" }, { status: 400 });
-    }
+    const videoId = searchParams.get("videoId");
+    const channelId = searchParams.get("channelId");
 
     const userId = await getUserId(req);
-    const override = await getPromptOverride(userId, targetId);
+    let override: PromptOverride | null = null;
+
+    if (targetId) {
+      // Direct lookup (legacy/specific)
+      override = await getPromptOverride(userId, targetId);
+    } else if (videoId || channelId) {
+      // Smart lookup with precedence
+      override = await resolvePromptOverride(
+        userId, 
+        videoId || undefined, 
+        channelId || undefined
+      );
+    } else {
+      return NextResponse.json({ error: "Missing targetId, videoId, or channelId" }, { status: 400 });
+    }
 
     return NextResponse.json({ override });
   } catch (error: any) {
