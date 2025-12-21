@@ -418,7 +418,13 @@ export default function Dashboard() {
                 ) : (
                   <ChevronDown className="w-4 h-4" />
                 )}
-                Additional Instructions (Optional)
+                Additional Instructions
+                {originalOverride && !isSkipped && (
+                  <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                    Override Active
+                  </span>
+                )}
+                {!isPromptOpen && "(Optional)"}
               </button>
               
               {originalOverride && (
