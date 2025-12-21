@@ -35,3 +35,25 @@ export async function resolvePromptOverride(
 
   return null;
 }
+
+/**
+ * Determines if the "Save Prompt" toast should be shown.
+ * 
+ * @param currentInput The current text in the custom prompt area.
+ * @param originalOverride The prompt text that was originally loaded (or null).
+ * @param hasStarted Whether the summarization process has started.
+ */
+export function shouldShowSavePrompt(
+  currentInput: string,
+  originalOverride: string | null,
+  hasStarted: boolean
+): boolean {
+  if (!hasStarted) return false;
+  if (!currentInput || currentInput.trim() === '') return false;
+  
+  // If no original override, and we have input, it's new -> Save
+  if (originalOverride === null) return true;
+
+  // If we have an original override, only show if different
+  return currentInput.trim() !== originalOverride.trim();
+}

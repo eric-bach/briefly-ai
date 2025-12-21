@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/Navbar";
 import { parseInput } from "@/lib/youtube-utils";
+import { shouldShowSavePrompt } from "@/lib/prompt-utils";
 
 interface VideoSnippet {
   publishedAt: string;
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [originalOverride, setOriginalOverride] = useState<string | null>(null);
   const [isSkipped, setIsSkipped] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
@@ -241,6 +243,12 @@ export default function Dashboard() {
       setSummary("");
       setError("");
       setVideos([]); // Clear videos when starting a summary
+      setShowSaveToast(false); // Reset toast
+
+      // Check if we should prompt to save (logic: has started = true now)
+      if (shouldShowSavePrompt(customPrompt, originalOverride, true)) {
+        setShowSaveToast(true);
+      }
 
       try {
         const response = await fetch("/api/summarize", {
@@ -500,6 +508,41 @@ export default function Dashboard() {
             )}
 
             <div ref={observerTarget} className="h-4 w-full" />
+          </div>
+        )}
+
+        {/* Save Prompt Toast */}
+        {showSaveToast && (
+          <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-80 animate-in slide-in-from-bottom-5 duration-300 z-50">
+            <div className="flex justify-between items-start mb-2">
+              <h4 className="font-semibold text-gray-900">Save this prompt?</h4>
+              <button 
+                onClick={() => setShowSaveToast(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              You can save this prompt for future videos.
+            </p>
+            <div className="flex gap-2">
+              <button 
+                className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+                onClick={() => {
+                  // TODO: Implement save logic
+                  console.log("Save clicked");
+                }}
+              >
+                Save
+              </button>
+              <button 
+                className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors"
+                onClick={() => setShowSaveToast(false)}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
       </div>
