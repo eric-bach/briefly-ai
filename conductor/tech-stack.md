@@ -18,6 +18,7 @@
 ## Infrastructure & Cloud
 
 - **IaC:** AWS CDK (Python)
+- **Database:** Amazon DynamoDB (for storing user prompt overrides)
 - **AI Services:** AWS Bedrock
 - **Identity:** AWS Cognito
 - **Runtime:** AWS Bedrock AgentCore
