@@ -57,3 +57,24 @@ export function shouldShowSavePrompt(
   // If we have an original override, only show if different
   return currentInput.trim() !== originalOverride.trim();
 }
+
+/**
+ * Saves a prompt override to the backend.
+ */
+export async function saveOverride(
+  targetId: string,
+  prompt: string,
+  type: 'video' | 'channel'
+): Promise<boolean> {
+  try {
+    const res = await fetch('/api/user/prompts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId, prompt, type })
+    });
+    return res.ok;
+  } catch (e) {
+    console.error("Failed to save override", e);
+    return false;
+  }
+}

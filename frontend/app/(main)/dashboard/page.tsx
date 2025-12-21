@@ -15,7 +15,7 @@ import ReactMarkdown from "react-markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Navbar } from "@/components/Navbar";
 import { parseInput } from "@/lib/youtube-utils";
-import { shouldShowSavePrompt } from "@/lib/prompt-utils";
+import { shouldShowSavePrompt, saveOverride } from "@/lib/prompt-utils";
 
 interface VideoSnippet {
   publishedAt: string;
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
   const [originalOverride, setOriginalOverride] = useState<string | null>(null);
+  const [currentChannelId, setCurrentChannelId] = useState<string | null>(null);
   const [isSkipped, setIsSkipped] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
@@ -129,21 +130,10 @@ export default function Dashboard() {
         const videoId = parsed.value;
         // Need channel ID for precedence
         const channelId = await resolveVideoDetails(videoId);
+        setCurrentChannelId(channelId || null);
         await fetchPromptOverride(videoId, channelId || undefined);
       } else if (parsed.type === "channel") {
-        // value might be handle or ID. 
-        // If handle, we technically need to resolve it to ID first for the API?
-        // Our api/youtube/videos resolves it, but api/user/prompts expects ID.
-        // Assuming for now user enters ID or we rely on some other resolution?
-        // Actually api/user/prompts checks DB keys. DB keys are IDs.
-        // If user types handle, we need to resolve ID.
-        // We can reuse resolveVideoDetails logic but for channel?
-        // fetchChannelVideos resolves it but doesn't return it easily.
-        // Let's assume for this iteration we try fetching with the value.
-        // If it fails (no match), fine. 
-        // Improvement: Resolve handle to ID here too.
-        
-        // For now, pass as channelId.
+        setCurrentChannelId(parsed.value); // Assuming value is ID for now
         await fetchPromptOverride(undefined, parsed.value);
       }
     }, 500); // 500ms debounce
@@ -341,6 +331,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleSaveOverride = async (type: 'video' | 'channel') => {
+    const parsed = parseInput(input);
+    let targetId = "";
+    
+    if (type === 'video') {
+       if (parsed.type !== 'video') return; 
+       targetId = parsed.value;
+    } else {
+       if (!currentChannelId) return;
+       targetId = currentChannelId;
+    }
+
+    const success = await saveOverride(targetId, customPrompt, type);
+    if (success) {
+      setOriginalOverride(customPrompt);
+      setShowSaveToast(false);
+      // Optional: Show success toast
+    } else {
+      alert("Failed to save prompt override.");
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50">
       <Navbar />
@@ -526,18 +538,27 @@ export default function Dashboard() {
             <p className="text-sm text-gray-600 mb-3">
               You can save this prompt for future videos.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              {mode === 'video' && (
+                <button 
+                  className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors text-center"
+                  onClick={() => handleSaveOverride('video')}
+                >
+                  Save for this Video
+                </button>
+              )}
+              
+              {currentChannelId && (
+                <button 
+                  className="w-full px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-md transition-colors text-center"
+                  onClick={() => handleSaveOverride('channel')}
+                >
+                  Save for {mode === 'video' ? 'Channel' : 'this Channel'}
+                </button>
+              )}
+
               <button 
-                className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
-                onClick={() => {
-                  // TODO: Implement save logic
-                  console.log("Save clicked");
-                }}
-              >
-                Save
-              </button>
-              <button 
-                className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors"
+                className="w-full px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors text-center"
                 onClick={() => setShowSaveToast(false)}
               >
                 Dismiss
