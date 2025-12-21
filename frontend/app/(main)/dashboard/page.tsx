@@ -47,6 +47,8 @@ export default function Dashboard() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [originalOverride, setOriginalOverride] = useState<string | null>(null);
+  const [isSkipped, setIsSkipped] = useState(false);
   const [isPromptOpen, setIsPromptOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,13 +79,13 @@ export default function Dashboard() {
         const data = await res.json();
         if (data.override) {
           setCustomPrompt(data.override.prompt);
+          setOriginalOverride(data.override.prompt);
+          setIsSkipped(false);
           // TODO: Set override active state/badge (Phase 3)
         } else {
-          setCustomPrompt(""); // Reset if no override? Or keep previous?
-          // For now, reset to ensure we don't carry over overrides from other videos
-          // unless user has typed something? 
-          // Ideally: Only set if user hasn't manually edited? 
-          // For simplicity: Always reset/set for now as per "Discovery & Loading" spec.
+          setCustomPrompt(""); 
+          setOriginalOverride(null);
+          setIsSkipped(false);
         }
       }
     } catch (e) {
@@ -320,6 +322,17 @@ export default function Dashboard() {
     await generateSummary(videoUrl, customPrompt);
   };
 
+  const handleSkipToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!originalOverride) return;
+    const newSkipped = e.target.checked;
+    setIsSkipped(newSkipped);
+    if (newSkipped) {
+      setCustomPrompt("");
+    } else {
+      setCustomPrompt(originalOverride);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50">
       <Navbar />
@@ -374,25 +387,41 @@ export default function Dashboard() {
           </form>
 
           <div>
-            <button
-              type="button"
-              onClick={() => setIsPromptOpen(!isPromptOpen)}
-              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              {isPromptOpen ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsPromptOpen(!isPromptOpen)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {isPromptOpen ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                Additional Instructions (Optional)
+              </button>
+              
+              {originalOverride && (
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSkipped}
+                    onChange={handleSkipToggle}
+                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  />
+                  Skip for this summary
+                </label>
               )}
-              Additional Instructions (Optional)
-            </button>
+            </div>
+
             {isPromptOpen && (
               <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
+                  disabled={isSkipped}
                   placeholder="e.g. 'Don't spoil the ending', 'Focus on the technical details', 'Summarize in bullet points'..."
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all min-h-[100px] text-sm resize-y"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all min-h-[100px] text-sm resize-y disabled:opacity-50 disabled:bg-gray-100"
                 />
               </div>
             )}
