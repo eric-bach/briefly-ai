@@ -10,9 +10,9 @@
 ## Phase 2: Frontend - Retrieval & Precedence Logic
 - [x] Task: Create a utility in `frontend/lib/prompt-utils.ts` to handle override lookup and precedence (Video > Channel). c67f211
 - [x] Task: Write tests for the precedence logic. c67f211
-- [ ] Task: Update `/dashboard/page.tsx` to fetch overrides when a video or channel is identified via Smart Input.
-- [ ] Task: Integrate the "Skip for this summary" toggle state into the dashboard.
-- [ ] Task: Conductor - User Manual Verification 'Frontend - Retrieval & Precedence Logic' (Protocol in workflow.md)
+- [x] Task: Update `/dashboard/page.tsx` to fetch overrides when a video or channel is identified via Smart Input. 85055cd
+- [x] Task: Integrate the "Skip for this summary" toggle state into the dashboard. a1d93b3
+- [~] Task: Conductor - User Manual Verification 'Frontend - Retrieval & Precedence Logic' (Protocol in workflow.md)
 
 ## Phase 3: Frontend - UI & Persistence
 - [ ] Task: Implement change detection logic to trigger the "Save" toast when a custom prompt is used.
