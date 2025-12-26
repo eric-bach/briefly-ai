@@ -79,7 +79,7 @@ This plan outlines the steps to implement the user profile page for managing sav
   - [x] Remove help cursor from dialog title.
   - [x] Use scrollable input for long titles.
   - [x] Add target thumbnail to Edit Dialog.
-- [x] Task: Update Delete Prompt Dialog [implicit]
+- [x] Task: Update Delete Prompt Dialog [f3acf8d]
   - [x] Display friendly target title/channel name in confirmation message.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
 ## Phase 6: Final Polish [checkpoint: 5650b12]
