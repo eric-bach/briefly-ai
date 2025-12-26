@@ -4,7 +4,7 @@ This plan outlines the steps to implement the UI improvements specified in `spec
 
 ## Phase 1: Preparation & Minor Fixes
 - [x] Task: Identify and verify components for modification (Navbar, YouTubeViewer/Accordion)
-- [x] Task: Fix "Additional Instructions (Optional)" label formatting
+- [x] Task: Fix "Additional Instructions (Optional)" label formatting [699b986]
     - [x] Write failing test for the label text
     - [x] Update the label in the component
     - [x] Verify test passes
