@@ -2,7 +2,7 @@
 
 This plan outlines the steps to implement the user profile page for managing saved prompt overrides, following the project's TDD-based workflow.
 
-## Phase 1: API Development
+## Phase 1: API Development [checkpoint: da69b6d]
 - [x] Task: Design and implement `GET /api/user/prompts` to support pagination and filtering [59be37b]
     - [x] Write failing test for fetching prompts with limit, offset, and filter query params
     - [x] Update `GET` handler in `frontend/app/api/user/prompts/route.ts` (or create new)
