@@ -18,12 +18,12 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Conductor - User Manual Verification 'Phase 1: API Development' (Protocol in workflow.md)
 
 ## Phase 2: Frontend Setup & Navigation
-- [ ] Task: Create empty `/profile` page
+- [~] Task: Create empty `/profile` page
     - [ ] Create `frontend/app/(main)/profile/page.tsx`
     - [ ] Add basic layout and header
 - [ ] Task: Add navigation link to Navbar Dropdown
     - [ ] Update `Navbar.tsx` to include "Manage Prompts" or "Profile" link in the user dropdown
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Frontend Setup & Navigation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Setup & Navigation' (Protocol in workflow.md)
 
 ## Phase 3: Prompt List UI (Read-Only)
 - [ ] Task: Create `PromptList` component

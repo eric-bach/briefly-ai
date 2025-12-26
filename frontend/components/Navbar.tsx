@@ -65,6 +65,13 @@ export function Navbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <Link href="/profile">
+              <DropdownMenuItem className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                <span>Manage Prompts</span>
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}
               className="text-red-600 focus:text-red-600 cursor-pointer"
