@@ -81,9 +81,9 @@ This plan outlines the steps to implement the user profile page for managing sav
   - [x] Add target thumbnail to Edit Dialog.
 - [x] Task: Update Delete Prompt Dialog [f3acf8d]
   - [x] Display friendly target title/channel name in confirmation message.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
 ## Phase 6: Final Polish [checkpoint: 5650b12]
 
 - [x] Task: Verify mobile responsiveness [implicit]
 - [x] Task: Perform final linting and type check [c9cbd71]
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Polish' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 6: Final Polish' (Protocol in workflow.md)

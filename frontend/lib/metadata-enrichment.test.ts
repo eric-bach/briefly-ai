@@ -1,7 +1,7 @@
 import { fetchMetadata } from "../app/api/user/prompts/route";
 
 // Simple assertion helper
-function expect(actual: any, expected: any, message: string) {
+function expect(actual: unknown, expected: unknown, message: string) {
     if (actual !== expected) {
         console.error(`FAIL: ${message}`);
         console.error(`  Expected: ${expected}`);
@@ -25,7 +25,7 @@ async function runTests() {
 
     try {
         // Mock global.fetch for YouTube API
-        global.fetch = async (url: any) => {
+        global.fetch = (async (url: string | URL | Request) => {
             const urlStr = url.toString();
             if (urlStr.includes('videos') && urlStr.includes('id=test-video-id')) {
                 return {
@@ -41,7 +41,7 @@ async function runTests() {
                             }
                         }]
                     })
-                } as any;
+                } as Response;
             }
             if (urlStr.includes('channels') && urlStr.includes('id=test-channel-id')) {
                 return {
@@ -56,10 +56,10 @@ async function runTests() {
                             }
                         }]
                     })
-                } as any;
+                } as Response;
             }
-            return { ok: false, json: async () => ({ items: [] }) } as any;
-        };
+            return { ok: false, json: async () => ({ items: [] }) } as Response;
+        }) as typeof global.fetch;
 
         // Test 1: Video metadata
         console.log("Testing video metadata enrichment...");

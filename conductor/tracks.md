@@ -18,6 +18,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/tracks/ui_navbar_improvements_20251225/](./conductor/tracks/ui_navbar_improvements_20251225/)*
 
 ---
-
-## [~] Track: User Profile & Prompt Management
+## [x] Track: User Profile & Prompt Management
 *Link: [./conductor/tracks/user_profile_prompts_20251225/](./conductor/tracks/user_profile_prompts_20251225/)*
