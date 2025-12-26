@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPromptOverride, savePromptOverride, PromptOverride } from "@/lib/db";
+import { getPromptOverride, savePromptOverride, listPromptOverrides, deletePromptOverride, PromptOverride } from "@/lib/db";
 import { resolvePromptOverride } from "@/lib/prompt-utils";
 
 // TODO: Implement proper server-side authentication with Amplify
@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     if (targetId) {
       // Direct lookup (legacy/specific)
       override = await getPromptOverride(userId, targetId);
+      return NextResponse.json({ override });
     } else if (videoId || channelId) {
       // Smart lookup with precedence
       override = await resolvePromptOverride(
@@ -27,11 +28,16 @@ export async function GET(req: NextRequest) {
         videoId || undefined, 
         channelId || undefined
       );
+      return NextResponse.json({ override });
     } else {
-      return NextResponse.json({ error: "Missing targetId, videoId, or channelId" }, { status: 400 });
-    }
+      // List all prompts
+      const limit = parseInt(searchParams.get("limit") || "20");
+      const nextToken = searchParams.get("nextToken") || undefined;
+      const filter = searchParams.get("filter") || undefined;
 
-    return NextResponse.json({ override });
+      const result = await listPromptOverrides(userId, limit, nextToken, filter);
+      return NextResponse.json(result);
+    }
   } catch (error: any) {
     console.error("Error in GET /api/user/prompts:", error);
     return NextResponse.json(
@@ -68,6 +74,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, override });
   } catch (error: any) {
     console.error("Error in POST /api/user/prompts:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  return POST(req);
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const targetId = searchParams.get("targetId");
+
+    if (!targetId) {
+      return NextResponse.json(
+        { error: "Missing required field: targetId" },
+        { status: 400 }
+      );
+    }
+
+    const userId = await getUserId(req);
+    await deletePromptOverride(userId, targetId);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Error in DELETE /api/user/prompts:", error);
     return NextResponse.json(
       { error: "Internal Server Error", details: error.message },
       { status: 500 }
