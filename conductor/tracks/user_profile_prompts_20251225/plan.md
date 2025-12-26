@@ -25,7 +25,7 @@ This plan outlines the steps to implement the user profile page for managing sav
     - [ ] Update `Navbar.tsx` to include "Manage Prompts" or "Profile" link in the user dropdown
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Setup & Navigation' (Protocol in workflow.md)
 
-## Phase 3: Prompt List UI (Read-Only)
+## Phase 3: Prompt List UI (Read-Only) [checkpoint: dd55d4a]
 - [x] Task: Create `PromptList` component [implicit]
     - [x] Scaffold component with props for data
 - [x] Task: Implement fetching logic in Profile page [implicit]
