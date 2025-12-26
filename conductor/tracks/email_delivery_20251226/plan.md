@@ -28,14 +28,14 @@ This plan outlines the steps to implement email notifications for video summarie
 
 ## Phase 3: Frontend - Profile Settings [checkpoint: ]
 
-- [ ] Task: Implement Email Management UI in `/profile`
-  - [ ] Add a field to display and edit the notification email address.
-  - [ ] Write failing tests for the email input and edit state.
-  - [ ] Implement UI and verify tests pass.
-- [ ] Task: Implement Global Notification Toggle
-  - [ ] Add a Switch/Toggle component for "Enable Email Notifications".
-  - [ ] Write failing tests for toggle state changes.
-  - [ ] Implement logic and verify tests pass.
+- [x] Task: Implement Email Management UI in `/profile`
+  - [x] Add a field to display and edit the notification email address.
+  - [x] Write failing tests for the email input and edit state.
+  - [x] Implement UI and verify tests pass.
+- [x] Task: Implement Global Notification Toggle
+  - [x] Add a Switch/Toggle component for "Enable Email Notifications".
+  - [x] Write failing tests for toggle state changes.
+  - [x] Implement logic and verify tests pass.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Frontend - Profile Settings' (Protocol in workflow.md)
 
 ## Phase 4: Frontend - Dashboard Indicator [checkpoint: ]
