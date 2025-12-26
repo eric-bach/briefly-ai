@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { PromptList } from "@/components/PromptList";
+import { EditPromptDialog } from "@/components/EditPromptDialog";
+import { DeletePromptDialog } from "@/components/DeletePromptDialog";
 import { PromptOverride } from "@/lib/db";
 import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -14,6 +16,13 @@ export default function ProfilePage() {
   const [prevTokens, setPrevTokens] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [limit] = useState(10);
+
+  // Interaction state
+  const [selectedPrompt, setSelectedPrompt] = useState<PromptOverride | null>(
+    null
+  );
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const fetchPrompts = async (
     token?: string | null,
@@ -48,7 +57,6 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    // Debounce search would be better, but for now simple fetch
     const timeout = setTimeout(() => {
       fetchPrompts();
     }, 300);
@@ -60,9 +68,47 @@ export default function ProfilePage() {
   };
 
   const handlePrev = () => {
-    // This simple pagination assumes the previous state
     const prevToken = prevTokens[prevTokens.length - 1] || null;
     fetchPrompts(prevToken, true);
+  };
+
+  const handleEditClick = (prompt: PromptOverride) => {
+    setSelectedPrompt(prompt);
+    setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (prompt: PromptOverride) => {
+    setSelectedPrompt(prompt);
+    setIsDeleteOpen(true);
+  };
+
+  const handleSave = async (updatedPrompt: string) => {
+    if (!selectedPrompt) return;
+    const res = await fetch("/api/user/prompts", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        targetId: selectedPrompt.targetId,
+        type: selectedPrompt.type,
+        prompt: updatedPrompt,
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to update prompt");
+    fetchPrompts();
+  };
+
+  const handleDelete = async () => {
+    if (!selectedPrompt) return;
+    const res = await fetch(
+      `/api/user/prompts?targetId=${encodeURIComponent(
+        selectedPrompt.targetId
+      )}`,
+      {
+        method: "DELETE",
+      }
+    );
+    if (!res.ok) throw new Error("Failed to delete prompt");
+    fetchPrompts();
   };
 
   return (
@@ -107,7 +153,11 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              <PromptList prompts={prompts} />
+              <PromptList
+                prompts={prompts}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+              />
 
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <button
@@ -119,7 +169,11 @@ export default function ProfilePage() {
                   Previous
                 </button>
                 <div className="text-xs text-gray-400 italic">
-                  {loading ? "Loading..." : prompts.length === 0 ? "No prompts found" : ""}
+                  {loading
+                    ? "Loading..."
+                    : prompts.length === 0
+                    ? "No prompts found"
+                    : ""}
                 </div>
                 <button
                   onClick={handleNext}
@@ -134,6 +188,20 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      <EditPromptDialog
+        isOpen={isEditOpen}
+        prompt={selectedPrompt}
+        onClose={() => setIsEditOpen(false)}
+        onSave={handleSave}
+      />
+
+      <DeletePromptDialog
+        isOpen={isDeleteOpen}
+        prompt={selectedPrompt}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

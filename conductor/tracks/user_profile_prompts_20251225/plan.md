@@ -39,15 +39,15 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Prompt List UI (Read-Only)' (Protocol in workflow.md)
 
 ## Phase 4: Edit & Delete Interactions
-- [ ] Task: Implement Edit Prompt Modal/UI
-    - [ ] Create Edit Dialog component
-    - [ ] Connect "Edit" button to open dialog
-    - [ ] Implement save logic calling the API
-- [ ] Task: Implement Delete Prompt Dialog
-    - [ ] Create Confirmation Dialog component
-    - [ ] Connect "Delete" button to open dialog
-    - [ ] Implement delete logic calling the API
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Edit & Delete Interactions' (Protocol in workflow.md)
+- [x] Task: Implement Edit Prompt Modal/UI [implicit]
+    - [x] Create Edit Dialog component
+    - [x] Connect "Edit" button to open dialog
+    - [x] Implement save logic calling the API
+- [x] Task: Implement Delete Prompt Dialog [implicit]
+    - [x] Create Confirmation Dialog component
+    - [x] Connect "Delete" button to open dialog
+    - [x] Implement delete logic calling the API
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Edit & Delete Interactions' (Protocol in workflow.md)
 
 ## Phase 5: Final Polish
 - [ ] Task: Verify mobile responsiveness

@@ -1,11 +1,13 @@
 import { PromptOverride } from "@/lib/db";
-import { Youtube, User, Video } from "lucide-react";
+import { User, Video } from "lucide-react";
 
 interface PromptListProps {
   prompts: PromptOverride[];
+  onEdit: (prompt: PromptOverride) => void;
+  onDelete: (prompt: PromptOverride) => void;
 }
 
-export function PromptList({ prompts }: PromptListProps) {
+export function PromptList({ prompts, onEdit, onDelete }: PromptListProps) {
   if (prompts.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
@@ -49,9 +51,21 @@ export function PromptList({ prompts }: PromptListProps) {
                   {prompt.prompt}
                 </p>
               </td>
-              <td className="px-6 py-4 text-right text-gray-400">
-                {/* Actions will be implemented in Phase 4 */}
-                <span className="text-xs italic">Read-only</span>
+              <td className="px-6 py-4 text-right">
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => onEdit(prompt)}
+                    className="text-red-600 hover:text-red-700 font-medium transition-colors cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(prompt)}
+                    className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
