@@ -25,6 +25,7 @@ Briefly AI is a YouTube Video Summarizer Agent.
 - **Structured Summaries:** Delivers clear, structured summaries directly in the dashboard.
 - **Customizable Prompts & Personas:** Allows users to define custom instructions or "personas" for summarization.
 - **Smart Prompt Overrides:** Automatically remembers and applies custom prompts for specific videos or entire channels, providing a consistent experience for recurring content.
+- **Prompt Management:** A dedicated user profile interface to list, filter, edit, and delete saved prompt overrides.
 
 ## Future Vision
 
