@@ -15,13 +15,14 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
 ### 3. Prompt Management List
 - **Display:** A paginated list or table of saved prompt overrides.
 - **Columns/Fields:**
-    - **Target Type:** Icon or text indicating if it's for a "Video" or "Channel".
     - **Target Info:** 
-        - **Video:** Display Video Title, Thumbnail, and a Link to the video.
+        - **Video:** Display Video Title (truncated if long), Thumbnail, and a Link to the video.
         - **Channel:** Display Channel Name, Channel Thumbnail, and a Link to the channel.
         - **Tooltip:** Hovering over the link/content should display the raw Target ID (Video ID or Channel ID).
+        - **Type Indicator:** Small icon/text below the title indicating "Video" or "Channel".
     - **Prompt Content:** A truncated view of the prompt text.
     - **Last Updated:** Date/Time of the last modification.
+    - **Actions:** A 3-dot menu (dropdown) containing "Edit" and "Delete" options.
 - **Pagination:** Standard pagination controls (Next/Prev, Page Numbers) to handle large numbers of prompts.
 
 ### 4. Filtering
