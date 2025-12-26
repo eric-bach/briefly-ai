@@ -57,7 +57,7 @@ export function EditPromptDialog({
           <div className="space-y-2 w-full min-w-0 relative">
             <Label>Target ({prompt?.type})</Label>
             <div className="group relative">
-               <p className="text-sm font-normal text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help block w-full">
+               <p className="text-sm font-normal text-gray-900 bg-gray-50 p-2 rounded truncate block w-full">
                  {prompt?.targetTitle || prompt?.channelTitle || prompt?.targetId}
                </p>
                <div className="absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-sm top-full left-1/2 transform -translate-x-1/2 whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity mt-1">

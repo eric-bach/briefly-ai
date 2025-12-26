@@ -76,6 +76,7 @@ This plan outlines the steps to implement the user profile page for managing sav
   - [x] Add ID tooltip.
   - [x] Truncate long titles in dialog.
   - [x] Unbold title and fix tooltip positioning.
+  - [x] Remove help cursor from dialog title.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
 ## Phase 6: Final Polish [checkpoint: 5650b12]
 
