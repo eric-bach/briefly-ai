@@ -38,7 +38,7 @@ This plan outlines the steps to implement the user profile page for managing sav
     - [x] Add input field and debounce search logic
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Prompt List UI (Read-Only)' (Protocol in workflow.md)
 
-## Phase 4: Edit & Delete Interactions
+## Phase 4: Edit & Delete Interactions [checkpoint: c788c57]
 - [x] Task: Implement Edit Prompt Modal/UI [implicit]
     - [x] Create Edit Dialog component
     - [x] Connect "Edit" button to open dialog
