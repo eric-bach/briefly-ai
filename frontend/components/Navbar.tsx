@@ -21,7 +21,7 @@ export function Navbar() {
     <nav className="w-full bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center fixed top-0 left-0 z-10">
       <div className="flex items-center gap-8">
         <Link
-          href="/dashboard"
+          href="/"
           className="flex items-center gap-2 font-bold text-xl text-gray-900 group"
         >
           <div className="p-1.5 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
@@ -38,7 +38,7 @@ export function Navbar() {
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            Summarizer
+            Summarize
           </Link>
         </div>
       </div>
