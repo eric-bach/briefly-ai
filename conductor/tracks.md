@@ -11,3 +11,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: User Prompt Overrides
 *Link: [./conductor/tracks/user_prompt_overrides_20251220/](./conductor/tracks/user_prompt_overrides_20251220/)*
+
+---
+
+## [~] Track: UI Improvements & Navbar Enhancements
+*Link: [./conductor/tracks/ui_navbar_improvements_20251225/](./conductor/tracks/ui_navbar_improvements_20251225/)*
