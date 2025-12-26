@@ -32,7 +32,8 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
 ### 5. Editing Prompts
 - **Interaction:** Clicking an "Edit" button on a row opens a modal or inline editor.
 - **Display:** The modal should display the friendly Target Title (or Channel Name) instead of the raw ID. 
-    - Hovering over this title should reveal the ID via a tooltip.
+    - The title text should be normal weight (not bold).
+    - Hovering over this title should reveal the ID via a tooltip positioned below the element to avoid clipping.
     - If the title is too long, it should be truncated to fit within the modal.
 - **Behavior:**
     - Users can modify the prompt text.

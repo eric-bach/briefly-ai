@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { Tooltip } from "@/components/ui/tooltip";
 
 interface EditPromptDialogProps {
   prompt: PromptOverride | null;
@@ -55,13 +54,17 @@ export function EditPromptDialog({
           <DialogTitle>Edit Prompt Override</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="space-y-2 w-full overflow-hidden">
+          <div className="space-y-2 w-full min-w-0 relative">
             <Label>Target ({prompt?.type})</Label>
-            <Tooltip content={`ID: ${prompt?.targetId}`}>
-               <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help block w-full">
+            <div className="group relative">
+               <p className="text-sm font-normal text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help block w-full">
                  {prompt?.targetTitle || prompt?.channelTitle || prompt?.targetId}
                </p>
-            </Tooltip>
+               <div className="absolute z-50 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-sm top-full left-1/2 transform -translate-x-1/2 whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+                 ID: {prompt?.targetId}
+                 <div className="absolute w-2 h-2 bg-gray-900 transform rotate-45 left-1/2 -translate-x-1/2 -top-1"></div>
+               </div>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="prompt-content">Prompt Instructions</Label>
