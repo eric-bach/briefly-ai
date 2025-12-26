@@ -65,7 +65,7 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Update `PromptList` Component [e1e14b6]
   - [x] Render Title, Thumbnail, and Link.
   - [x] Add Tooltip for ID.
-- [x] Task: Refine PromptList UI [873c148, 4833165]
+- [x] Task: Refine PromptList UI [873c148, 4833165, 281a396]
   - [x] Remove 'Type' column.
   - [x] Add 3-dot dropdown menu for actions.
   - [x] Truncate long target titles.
