@@ -16,7 +16,10 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
 - **Display:** A paginated list or table of saved prompt overrides.
 - **Columns/Fields:**
     - **Target Type:** Icon or text indicating if it's for a "Video" or "Channel".
-    - **Target ID:** The Video ID or Channel ID.
+    - **Target Info:** 
+        - **Video:** Display Video Title, Thumbnail, and a Link to the video.
+        - **Channel:** Display Channel Name, Channel Thumbnail, and a Link to the channel.
+        - **Tooltip:** Hovering over the link/content should display the raw Target ID (Video ID or Channel ID).
     - **Prompt Content:** A truncated view of the prompt text.
     - **Last Updated:** Date/Time of the last modification.
 - **Pagination:** Standard pagination controls (Next/Prev, Page Numbers) to handle large numbers of prompts.

@@ -50,6 +50,44 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function fetchMetadata(targetId: string, type: 'video' | 'channel') {
+  const apiKey = process.env.YOUTUBE_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    if (type === 'video') {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${targetId}&key=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.items && data.items.length > 0) {
+        return {
+          title: data.items[0].snippet.title,
+          thumbnail: data.items[0].snippet.thumbnails?.default?.url
+        };
+      }
+    } else {
+      let url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&key=${apiKey}`;
+      if (targetId.startsWith('@')) {
+        url += `&forHandle=${encodeURIComponent(targetId)}`;
+      } else {
+        url += `&id=${targetId}`;
+      }
+      
+      const res = await fetch(url);
+      const data = await res.json();
+       if (data.items && data.items.length > 0) {
+        return {
+          title: data.items[0].snippet.title,
+          thumbnail: data.items[0].snippet.thumbnails?.default?.url
+        };
+      }
+    }
+  } catch (e) {
+    console.error("Failed to fetch metadata", e);
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -64,12 +102,17 @@ export async function POST(req: NextRequest) {
 
     const userId = await getUserId(req);
     
+    // Fetch metadata (title, thumbnail)
+    const metadata = await fetchMetadata(targetId, type);
+
     const override: PromptOverride = {
       userId,
       targetId,
       prompt,
       type,
       updatedAt: new Date().toISOString(),
+      targetTitle: metadata?.title,
+      targetThumbnail: metadata?.thumbnail,
     };
 
     await savePromptOverride(override);

@@ -26,6 +26,8 @@ export interface PromptOverride {
   prompt: string;
   type: "video" | "channel";
   updatedAt: string;
+  targetTitle?: string;
+  targetThumbnail?: string;
 }
 
 export interface PaginatedPromptOverrides {
