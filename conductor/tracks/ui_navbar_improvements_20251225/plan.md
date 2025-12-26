@@ -2,13 +2,13 @@
 
 This plan outlines the steps to implement the UI improvements specified in `spec.md`, following the project's TDD-based workflow.
 
-## Phase 1: Preparation & Minor Fixes
+## Phase 1: Preparation & Minor Fixes [checkpoint: 47296b2]
 - [x] Task: Identify and verify components for modification (Navbar, YouTubeViewer/Accordion)
 - [x] Task: Fix "Additional Instructions (Optional)" label formatting [699b986]
     - [x] Write failing test for the label text
     - [x] Update the label in the component
     - [x] Verify test passes
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Preparation & Minor Fixes' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Preparation & Minor Fixes' (Protocol in workflow.md)
 
 ## Phase 2: Navbar Link Updates
 - [ ] Task: Update Logo link to point to `/`
