@@ -4,6 +4,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand,
+  DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({
@@ -25,6 +26,14 @@ export interface PromptOverride {
   prompt: string;
   type: "video" | "channel";
   updatedAt: string;
+  targetTitle?: string;
+  targetThumbnail?: string;
+  channelTitle?: string;
+}
+
+export interface PaginatedPromptOverrides {
+  items: PromptOverride[];
+  nextToken: string | null;
 }
 
 export async function getPromptOverride(
@@ -52,4 +61,62 @@ export async function savePromptOverride(
   });
 
   await docClient.send(command);
+}
+
+export async function deletePromptOverride(
+  userId: string,
+  targetId: string
+): Promise<void> {
+  const command = new DeleteCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      userId,
+      targetId,
+    },
+  });
+
+  await docClient.send(command);
+}
+
+export async function listPromptOverrides(
+  userId: string,
+  limit: number = 20,
+  nextToken?: string,
+  filter?: string
+): Promise<PaginatedPromptOverrides> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const params: any = {
+    TableName: TABLE_NAME,
+    KeyConditionExpression: "userId = :uid",
+    ExpressionAttributeValues: {
+      ":uid": userId,
+    },
+    Limit: limit,
+  };
+
+  if (nextToken) {
+    try {
+        params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'));
+    } catch (e) {
+        console.error("Invalid nextToken", e);
+    }
+  }
+
+  if (filter) {
+      params.FilterExpression = "contains(prompt, :f)";
+      params.ExpressionAttributeValues[":f"] = filter;
+  }
+
+  const command = new QueryCommand(params);
+  const response = await docClient.send(command);
+
+  let newNextToken: string | null = null;
+  if (response.LastEvaluatedKey) {
+      newNextToken = Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64');
+  }
+
+  return {
+    items: (response.Items as PromptOverride[]) || [],
+    nextToken: newNextToken,
+  };
 }
