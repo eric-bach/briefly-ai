@@ -32,6 +32,7 @@ This plan outlines the steps to implement the UI improvements specified in `spec
 - [x] Task: Conductor - User Manual Verification 'Phase 3: User Dropdown Implementation' (Protocol in workflow.md)
 
 ## Phase 4: Final Verification & Cleanup
-- [ ] Task: Run full test suite and verify coverage (>80%)
-- [ ] Task: Perform final linting and type checks
+- [x] Task: Run full test suite and verify coverage (>80%)
+- [x] Task: Perform final linting and type checks [ca36231]
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Final Verification & Cleanup' (Protocol in workflow.md)
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Verification & Cleanup' (Protocol in workflow.md)
