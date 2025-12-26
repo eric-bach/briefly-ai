@@ -55,10 +55,10 @@ export function EditPromptDialog({
           <DialogTitle>Edit Prompt Override</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
+          <div className="space-y-2 w-full overflow-hidden">
             <Label>Target ({prompt?.type})</Label>
             <Tooltip content={`ID: ${prompt?.targetId}`}>
-               <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help">
+               <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help block w-full">
                  {prompt?.targetTitle || prompt?.channelTitle || prompt?.targetId}
                </p>
             </Tooltip>

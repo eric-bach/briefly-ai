@@ -74,6 +74,7 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Update Edit Prompt Dialog [0d90f11]
   - [x] Display friendly target title/channel name.
   - [x] Add ID tooltip.
+  - [x] Truncate long titles in dialog.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
 ## Phase 6: Final Polish [checkpoint: 5650b12]
 
