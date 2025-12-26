@@ -17,7 +17,7 @@ This plan outlines the steps to implement the user profile page for managing sav
     - [x] Verify tests pass
 - [x] Task: Conductor - User Manual Verification 'Phase 1: API Development' (Protocol in workflow.md)
 
-## Phase 2: Frontend Setup & Navigation
+## Phase 2: Frontend Setup & Navigation [checkpoint: 9a176b2]
 - [~] Task: Create empty `/profile` page
     - [ ] Create `frontend/app/(main)/profile/page.tsx`
     - [ ] Add basic layout and header
