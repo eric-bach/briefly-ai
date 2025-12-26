@@ -34,6 +34,7 @@ async function runTests() {
                         items: [{
                             snippet: {
                                 title: "Test Video Title",
+                                channelTitle: "Test Channel",
                                 thumbnails: {
                                     default: { url: "http://example.com/thumb.jpg" }
                                 }
@@ -65,6 +66,7 @@ async function runTests() {
         const videoMetadata = await fetchMetadata('test-video-id', 'video');
         expect(videoMetadata?.title, "Test Video Title", "Should return correct video title");
         expect(videoMetadata?.thumbnail, "http://example.com/thumb.jpg", "Should return correct video thumbnail");
+        expect(videoMetadata?.channelTitle, "Test Channel", "Should return correct channel title for video");
         passed++;
 
         // Test 2: Channel metadata

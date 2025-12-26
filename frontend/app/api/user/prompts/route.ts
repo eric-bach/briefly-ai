@@ -62,7 +62,8 @@ export async function fetchMetadata(targetId: string, type: 'video' | 'channel')
       if (data.items && data.items.length > 0) {
         return {
           title: data.items[0].snippet.title,
-          thumbnail: data.items[0].snippet.thumbnails?.default?.url
+          thumbnail: data.items[0].snippet.thumbnails?.default?.url,
+          channelTitle: data.items[0].snippet.channelTitle
         };
       }
     } else {
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
       targetTitle: metadata?.title,
       targetThumbnail: metadata?.thumbnail,
+      channelTitle: metadata?.channelTitle,
     };
 
     await savePromptOverride(override);

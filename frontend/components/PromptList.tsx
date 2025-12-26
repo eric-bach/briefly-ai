@@ -77,6 +77,12 @@ export function PromptList({ prompts, onEdit, onDelete }: PromptListProps) {
                       <span className="text-xs text-gray-500 capitalize flex items-center gap-1">
                          {prompt.type === 'video' ? <Video className="w-3 h-3" /> : <User className="w-3 h-3" />}
                          {prompt.type}
+                         {prompt.channelTitle && (
+                           <>
+                             <span className="text-gray-300">•</span>
+                             <span className="truncate max-w-[120px]" title={prompt.channelTitle}>{prompt.channelTitle}</span>
+                           </>
+                         )}
                       </span>
                     </div>
                   </div>

@@ -28,6 +28,7 @@ export interface PromptOverride {
   updatedAt: string;
   targetTitle?: string;
   targetThumbnail?: string;
+  channelTitle?: string;
 }
 
 export interface PaginatedPromptOverrides {
