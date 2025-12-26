@@ -22,13 +22,13 @@ This plan outlines the steps to implement the UI improvements specified in `spec
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Navbar Link Updates' (Protocol in workflow.md)
 
 ## Phase 3: User Dropdown Implementation
-- [ ] Task: Install/Verify Dropdown Menu component (Shadcn/Radix)
-- [ ] Task: Replace direct User info with Dropdown Menu
-    - [ ] Write failing tests for Dropdown presence and "Sign Out" option
-    - [ ] Implement DropdownMenu in Navbar
-    - [ ] Integrate existing Sign Out logic into the dropdown
-    - [ ] Verify tests pass
-- [ ] Task: Ensure mobile responsiveness for the new dropdown
+- [x] Task: Install/Verify Dropdown Menu component (Shadcn/Radix) [9eadd85]
+- [x] Task: Replace direct User info with Dropdown Menu [9eadd85]
+    - [x] Write failing tests for Dropdown presence and "Sign Out" option
+    - [x] Implement DropdownMenu in Navbar
+    - [x] Integrate existing Sign Out logic into the dropdown
+    - [x] Verify tests pass
+- [x] Task: Ensure mobile responsiveness for the new dropdown [9eadd85]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: User Dropdown Implementation' (Protocol in workflow.md)
 
 ## Phase 4: Final Verification & Cleanup
