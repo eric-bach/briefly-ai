@@ -425,7 +425,7 @@ export default function Dashboard() {
                     Override Active
                   </span>
                 )}
-                {!isPromptOpen && "(Optional)"}
+                {!isPromptOpen && " (Optional)"}
               </button>
               
               {originalOverride && (
