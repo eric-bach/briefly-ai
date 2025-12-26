@@ -70,6 +70,7 @@ This plan outlines the steps to implement the user profile page for managing sav
   - [x] Add 3-dot dropdown menu for actions.
   - [x] Truncate long target titles.
   - [x] Display channel name for video prompts.
+  - [x] Show up to 2 lines for prompt content.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
 ## Phase 6: Final Polish [checkpoint: 5650b12]
 

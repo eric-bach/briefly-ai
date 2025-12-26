@@ -88,7 +88,7 @@ export function PromptList({ prompts, onEdit, onDelete }: PromptListProps) {
                   </div>
                 </td>
                 <td className="px-6 py-4 max-w-xs">
-                  <p className="truncate text-gray-900" title={prompt.prompt}>
+                  <p className="line-clamp-2 text-gray-900" title={prompt.prompt}>
                     {prompt.prompt}
                   </p>
                 </td>

@@ -21,7 +21,7 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
         - **Tooltip:** Hovering over the link/content should display the raw Target ID (Video ID or Channel ID).
         - **Type Indicator:** Small icon/text below the title indicating "Video" or "Channel".
         - **Channel Name (Video only):** Display the channel name next to the "Video" type indicator.
-    - **Prompt Content:** A truncated view of the prompt text.
+    - **Prompt Content:** A truncated view of the prompt text (up to 2 lines).
     - **Last Updated:** Date/Time of the last modification.
     - **Actions:** A 3-dot menu (dropdown) containing "Edit" and "Delete" options.
 - **Pagination:** Standard pagination controls (Next/Prev, Page Numbers) to handle large numbers of prompts.
