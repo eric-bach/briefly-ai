@@ -55,18 +55,17 @@ This plan outlines the steps to implement the user profile page for managing sav
 
 ## Phase 5: Friendly Target IDs (Enhancement)
 
-- [~] Task: Update Database Schema & Types
+- [x] Task: Update Database Schema & Types [e1e14b6]
   - [x] Update `PromptOverride` interface in `frontend/lib/db.ts` to include `targetTitle` and `targetThumbnail`.
-- [~] Task: Update Backend to Enrich Data
+- [x] Task: Update Backend to Enrich Data [e1e14b6]
   - [x] Update `POST /api/user/prompts` to fetch video/channel details (title, thumbnail) from YouTube API before saving.
   - [x] Update `GET /api/user/prompts` to return new fields.
-- [~] Task: Create Tooltip Component
+- [x] Task: Create Tooltip Component [e1e14b6]
   - [x] Create `frontend/components/ui/tooltip.tsx` (using Radix UI or custom Tailwind implementation).
-- [ ] Task: Update `PromptList` Component
-  - [ ] Render Title, Thumbnail, and Link.
-  - [ ] Add Tooltip for ID.
+- [x] Task: Update `PromptList` Component [e1e14b6]
+  - [x] Render Title, Thumbnail, and Link.
+  - [x] Add Tooltip for ID.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Friendly Target IDs'
-
 ## Phase 6: Final Polish [checkpoint: 5650b12]
 
 - [x] Task: Verify mobile responsiveness [implicit]
