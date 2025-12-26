@@ -10,7 +10,7 @@ This plan outlines the steps to implement the UI improvements specified in `spec
     - [x] Verify test passes
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Preparation & Minor Fixes' (Protocol in workflow.md)
 
-## Phase 2: Navbar Link Updates
+## Phase 2: Navbar Link Updates [checkpoint: 2cbb027]
 - [x] Task: Update Logo link to point to `/` [04aa083]
     - [x] Write failing test for Logo link destination
     - [x] Update Navbar component
@@ -19,7 +19,7 @@ This plan outlines the steps to implement the UI improvements specified in `spec
     - [x] Write failing test for link label text
     - [x] Update Navbar component
     - [x] Verify test passes
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Navbar Link Updates' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Navbar Link Updates' (Protocol in workflow.md)
 
 ## Phase 3: User Dropdown Implementation
 - [ ] Task: Install/Verify Dropdown Menu component (Shadcn/Radix)
