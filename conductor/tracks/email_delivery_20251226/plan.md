@@ -14,16 +14,16 @@ This plan outlines the steps to implement email notifications for video summarie
 
 ## Phase 2: Backend API & Email Logic [checkpoint: ]
 
-- [ ] Task: Implement Settings API
-  - [ ] Create/Update API endpoints to GET and POST user notification settings (email, toggle).
-  - [ ] Write failing tests for retrieving and updating these settings.
-  - [ ] Implement handlers and verify tests pass.
-- [ ] Task: Implement SNS Subscription Management
-  - [ ] Update the backend logic to handle SNS email subscriptions/unsubscriptions when the notification email changes or the toggle is flipped.
-- [ ] Task: Implement Email Publish Logic
-  - [ ] Update the summary generation flow to publish to SNS upon completion if notifications are enabled.
-  - [ ] Write failing tests mocking SNS to verify the correct subject format (`Briefly AI: [Title]`) and body content.
-  - [ ] Implement and verify tests pass.
+- [x] Task: Implement Settings API
+  - [x] Create/Update API endpoints to GET and POST user notification settings (email, toggle).
+  - [x] Write failing tests for retrieving and updating these settings.
+  - [x] Implement handlers and verify tests pass.
+- [x] Task: Implement SNS Subscription Management
+  - [x] Update the backend logic to handle SNS email subscriptions/unsubscriptions when the notification email changes or the toggle is flipped.
+- [x] Task: Implement Email Publish Logic
+  - [x] Update the summary generation flow to publish to SNS upon completion if notifications are enabled.
+  - [x] Write failing tests mocking SNS to verify the correct subject format (`Briefly AI: [Title]`) and body content.
+  - [x] Implement and verify tests pass.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Backend API & Email Logic' (Protocol in workflow.md)
 
 ## Phase 3: Frontend - Profile Settings [checkpoint: ]
