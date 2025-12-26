@@ -19,7 +19,9 @@ export function Navbar() {
   const pathname = usePathname();
 
   const handleSignOut = () => {
-    signOut && signOut();
+    if (signOut) {
+      signOut();
+    }
     router.push("/");
   };
 
