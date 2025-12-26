@@ -3,19 +3,19 @@
 This plan outlines the steps to implement the user profile page for managing saved prompt overrides, following the project's TDD-based workflow.
 
 ## Phase 1: API Development
-- [x] Task: Design and implement `GET /api/user/prompts` to support pagination and filtering [implicit]
+- [x] Task: Design and implement `GET /api/user/prompts` to support pagination and filtering [59be37b]
     - [x] Write failing test for fetching prompts with limit, offset, and filter query params
     - [x] Update `GET` handler in `frontend/app/api/user/prompts/route.ts` (or create new)
     - [x] Verify tests pass
-- [x] Task: Design and implement `PUT /api/user/prompts` (or specific route) for updating a prompt [implicit]
+- [x] Task: Design and implement `PUT /api/user/prompts` (or specific route) for updating a prompt [59be37b]
     - [x] Write failing test for updating a prompt's content
     - [x] Implement `PUT` (or `PATCH`) handler
     - [x] Verify tests pass
-- [x] Task: Design and implement `DELETE /api/user/prompts` for deleting a prompt
+- [x] Task: Design and implement `DELETE /api/user/prompts` for deleting a prompt [59be37b]
     - [x] Write failing test for deleting a prompt
     - [x] Implement `DELETE` handler
     - [x] Verify tests pass
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: API Development' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: API Development' (Protocol in workflow.md)
 
 ## Phase 2: Frontend Setup & Navigation
 - [ ] Task: Create empty `/profile` page
