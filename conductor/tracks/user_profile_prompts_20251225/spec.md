@@ -44,6 +44,7 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
 ### 6. Deleting Prompts
 - **Interaction:** Clicking a "Delete" button on a row.
 - **Safety:** A confirmation dialog (modal) must appear asking "Are you sure you want to delete this prompt override?".
+- **Display:** The confirmation message should include the friendly Target Title (or Channel Name) to clearly identify which prompt is being deleted.
 - **Action:** Upon confirmation, the prompt is permanently deleted from the database and removed from the list.
 
 ## Non-Functional Requirements

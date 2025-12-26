@@ -49,8 +49,10 @@ export function DeletePromptDialog({
           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This will permanently delete the prompt override for{" "}
-            <span className="font-mono text-gray-900">{prompt?.targetId}</span>.
-            This action cannot be undone.
+            <span className="font-semibold text-gray-900">
+              {prompt?.targetTitle || prompt?.channelTitle || prompt?.targetId}
+            </span>
+            . This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
