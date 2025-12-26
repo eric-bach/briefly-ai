@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface EditPromptDialogProps {
   prompt: PromptOverride | null;
@@ -55,10 +56,12 @@ export function EditPromptDialog({
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <Label>Target ID ({prompt?.type})</Label>
-            <p className="text-sm font-mono text-gray-500 bg-gray-50 p-2 rounded">
-              {prompt?.targetId}
-            </p>
+            <Label>Target ({prompt?.type})</Label>
+            <Tooltip content={`ID: ${prompt?.targetId}`}>
+               <p className="text-sm font-medium text-gray-900 bg-gray-50 p-2 rounded truncate cursor-help">
+                 {prompt?.targetTitle || prompt?.channelTitle || prompt?.targetId}
+               </p>
+            </Tooltip>
           </div>
           <div className="space-y-2">
             <Label htmlFor="prompt-content">Prompt Instructions</Label>
