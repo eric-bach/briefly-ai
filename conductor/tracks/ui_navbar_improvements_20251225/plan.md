@@ -11,14 +11,14 @@ This plan outlines the steps to implement the UI improvements specified in `spec
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Preparation & Minor Fixes' (Protocol in workflow.md)
 
 ## Phase 2: Navbar Link Updates
-- [ ] Task: Update Logo link to point to `/`
-    - [ ] Write failing test for Logo link destination
-    - [ ] Update Navbar component
-    - [ ] Verify test passes
-- [ ] Task: Update "Sumarizer" link to "Summarize"
-    - [ ] Write failing test for link label text
-    - [ ] Update Navbar component
-    - [ ] Verify test passes
+- [x] Task: Update Logo link to point to `/` [04aa083]
+    - [x] Write failing test for Logo link destination
+    - [x] Update Navbar component
+    - [x] Verify test passes
+- [x] Task: Update "Sumarizer" link to "Summarize" [04aa083]
+    - [x] Write failing test for link label text
+    - [x] Update Navbar component
+    - [x] Verify test passes
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Navbar Link Updates' (Protocol in workflow.md)
 
 ## Phase 3: User Dropdown Implementation
