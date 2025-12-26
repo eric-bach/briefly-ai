@@ -34,7 +34,7 @@ This track introduces a dedicated "User Profile" page accessible via the new Dro
 - **Display:** The modal should display the friendly Target Title (or Channel Name) instead of the raw ID. 
     - The title text should be normal weight (not bold).
     - Hovering over this title should reveal the ID via a tooltip positioned below the element to avoid clipping.
-    - If the title is too long, it should be truncated to fit within the modal.
+    - The title should be displayed in a read-only input field, allowing the user to scroll horizontally to view the full text if it is too long.
 - **Behavior:**
     - Users can modify the prompt text.
     - **Save:** Changes are NOT auto-saved. The user must click a "Save" button to commit changes.
