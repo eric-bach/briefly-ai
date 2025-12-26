@@ -26,17 +26,17 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Frontend Setup & Navigation' (Protocol in workflow.md)
 
 ## Phase 3: Prompt List UI (Read-Only)
-- [ ] Task: Create `PromptList` component
-    - [ ] Scaffold component with props for data
-- [ ] Task: Implement fetching logic in Profile page
-    - [ ] Use `SWR` or `useEffect` to fetch data from API
-- [ ] Task: Render prompt data in a table/list
-    - [ ] Display Target Type, ID, Truncated Content, Date
-- [ ] Task: Implement Pagination controls
-    - [ ] Add Next/Prev buttons and page indicators
-- [ ] Task: Implement Search/Filter input
-    - [ ] Add input field and debounce search logic
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Prompt List UI (Read-Only)' (Protocol in workflow.md)
+- [x] Task: Create `PromptList` component [implicit]
+    - [x] Scaffold component with props for data
+- [x] Task: Implement fetching logic in Profile page [implicit]
+    - [x] Use `SWR` or `useEffect` to fetch data from API
+- [x] Task: Render prompt data in a table/list [implicit]
+    - [x] Display Target Type, ID, Truncated Content, Date
+- [x] Task: Implement Pagination controls [implicit]
+    - [x] Add Next/Prev buttons and page indicators
+- [x] Task: Implement Search/Filter input [implicit]
+    - [x] Add input field and debounce search logic
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Prompt List UI (Read-Only)' (Protocol in workflow.md)
 
 ## Phase 4: Edit & Delete Interactions
 - [ ] Task: Implement Edit Prompt Modal/UI
