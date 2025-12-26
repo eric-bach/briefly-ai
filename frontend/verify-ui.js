@@ -32,11 +32,17 @@ if (logoLinkRegex.test(contentNavbar)) {
 console.log('Verifying Phase 2: Summarize link label...');
 if (contentNavbar.includes('Summarize') && !contentNavbar.includes('Summarizer')) {
     console.log('PASS: Summarize link label');
-} else if (contentNavbar.includes('Summarizer')) {
-    console.error('FAIL: Found old label "Summarizer"');
-    allPassed = false;
 } else {
-    console.error('FAIL: Summarize link label not found');
+    console.error('FAIL: Summarize link label');
+    allPassed = false;
+}
+
+// Phase 3 Check: User Dropdown
+console.log('Verifying Phase 3: User Dropdown...');
+if (contentNavbar.includes('DropdownMenu') && contentNavbar.includes('User')) {
+    console.log('PASS: User Dropdown implemented with User icon');
+} else {
+    console.error('FAIL: User Dropdown or User icon missing in Navbar');
     allPassed = false;
 }
 
