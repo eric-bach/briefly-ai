@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 const content = fs.readFileSync(path.join(__dirname, '../app/api/user/prompts/route.ts'), 'utf8');

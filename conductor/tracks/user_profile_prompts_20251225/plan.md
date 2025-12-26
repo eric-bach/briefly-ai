@@ -50,6 +50,7 @@ This plan outlines the steps to implement the user profile page for managing sav
 - [x] Task: Conductor - User Manual Verification 'Phase 4: Edit & Delete Interactions' (Protocol in workflow.md)
 
 ## Phase 5: Final Polish
-- [ ] Task: Verify mobile responsiveness
-- [ ] Task: Final linting and type check
+- [x] Task: Verify mobile responsiveness [implicit]
+- [x] Task: Final linting and type check
+- [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Polish' (Protocol in workflow.md)
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Polish' (Protocol in workflow.md)

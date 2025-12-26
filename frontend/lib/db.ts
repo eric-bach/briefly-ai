@@ -81,6 +81,7 @@ export async function listPromptOverrides(
   nextToken?: string,
   filter?: string
 ): Promise<PaginatedPromptOverrides> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
     TableName: TABLE_NAME,
     KeyConditionExpression: "userId = :uid",

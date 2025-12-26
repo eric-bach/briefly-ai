@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Navbar } from "@/components/Navbar";
 import { PromptList } from "@/components/PromptList";
 import { EditPromptDialog } from "@/components/EditPromptDialog";
@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const fetchPrompts = async (
+  const fetchPrompts = useCallback(async (
     token?: string | null,
     isPrev: boolean = false
   ) => {
@@ -49,19 +49,19 @@ export default function ProfilePage() {
       }
 
       setNextToken(data.nextToken || null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit, search]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       fetchPrompts();
     }, 300);
     return () => clearTimeout(timeout);
-  }, [search]);
+  }, [fetchPrompts]);
 
   const handleNext = () => {
     if (nextToken) fetchPrompts(nextToken);

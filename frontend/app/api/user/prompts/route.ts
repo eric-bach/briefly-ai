@@ -38,10 +38,13 @@ export async function GET(req: NextRequest) {
       const result = await listPromptOverrides(userId, limit, nextToken, filter);
       return NextResponse.json(result);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in GET /api/user/prompts:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -72,10 +75,13 @@ export async function POST(req: NextRequest) {
     await savePromptOverride(override);
 
     return NextResponse.json({ success: true, override });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in POST /api/user/prompts:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -101,10 +107,13 @@ export async function DELETE(req: NextRequest) {
     await deletePromptOverride(userId, targetId);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in DELETE /api/user/prompts:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
