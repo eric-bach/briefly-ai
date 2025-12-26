@@ -12,7 +12,7 @@ This plan outlines the steps to implement email notifications for video summarie
   - [x] Configure necessary IAM permissions for the backend to publish to this topic and manage subscriptions.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Database & Infrastructure' (Protocol in workflow.md)
 
-## Phase 2: Backend API & Email Logic [checkpoint: ]
+## Phase 2: Backend API & Email Logic [checkpoint: 42e7977]
 
 - [x] Task: Implement Settings API
   - [x] Create/Update API endpoints to GET and POST user notification settings (email, toggle).
