@@ -2,7 +2,7 @@
 
 This plan outlines the steps to implement email notifications for video summaries, including profile management, backend integration with AWS SNS, and dashboard indicators.
 
-## Phase 1: Database & Infrastructure [checkpoint: ]
+## Phase 1: Database & Infrastructure [checkpoint: 44b4d5f]
 
 - [x] Task: Update Database Schema & Types
   - [x] Add `notificationEmail` and `emailNotificationsEnabled` to the user profile record in DynamoDB.
