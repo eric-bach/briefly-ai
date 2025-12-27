@@ -40,9 +40,9 @@ This plan outlines the steps to implement email notifications for video summarie
 
 ## Phase 4: Frontend - Dashboard Indicator [checkpoint: ]
 
-- [ ] Task: Create Email Status Indicator Component
-  - [ ] Design a badge/icon component with Active (colored) and Inactive (greyed out) states.
-  - [ ] Write failing tests for rendering states and navigation logic.
+- [x] Task: Create Email Status Indicator Component [3cfcd3b]
+  - [x] Design a badge/icon component with Active (colored) and Inactive (greyed out) states.
+  - [x] Write failing tests for rendering states and navigation logic.
 - [ ] Task: Integrate Indicator into Dashboard
   - [ ] Place the indicator near the "Summarize" button.
   - [ ] Connect it to the user's notification settings.
