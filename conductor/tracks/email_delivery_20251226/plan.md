@@ -54,5 +54,5 @@ This plan outlines the steps to implement email notifications for video summarie
 
 - [x] Task: End-to-End Verification [c4b9d48]
   - [x] Manually verify the full flow: edit email -> confirm SNS link -> generate summary -> receive email.
-- [~] Task: Perform final linting and type check
+- [x] Task: Perform final linting and type check [56066e0]
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Polish & Verification' (Protocol in workflow.md)
