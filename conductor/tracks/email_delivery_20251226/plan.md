@@ -10,7 +10,7 @@ This plan outlines the steps to implement email notifications for video summarie
 - [x] Task: AWS SNS Infrastructure (CDK)
   - [x] Define an SNS Topic for video summaries in the CDK stack.
   - [x] Configure necessary IAM permissions for the backend to publish to this topic and manage subscriptions.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Database & Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Database & Infrastructure' (Protocol in workflow.md) [44b4d5f]
 
 ## Phase 2: Backend API & Email Logic [checkpoint: 42e7977]
 
@@ -24,9 +24,9 @@ This plan outlines the steps to implement email notifications for video summarie
   - [x] Update the summary generation flow to publish to SNS upon completion if notifications are enabled.
   - [x] Write failing tests mocking SNS to verify the correct subject format (`Briefly AI: [Title]`) and body content.
   - [x] Implement and verify tests pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Backend API & Email Logic' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Backend API & Email Logic' (Protocol in workflow.md) [42e7977]
 
-## Phase 3: Frontend - Profile Settings [checkpoint: ]
+## Phase 3: Frontend - Profile Settings [checkpoint: 29cc730]
 
 - [x] Task: Implement Email Management UI in `/profile`
   - [x] Add a field to display and edit the notification email address.
@@ -36,7 +36,7 @@ This plan outlines the steps to implement email notifications for video summarie
   - [x] Add a Switch/Toggle component for "Enable Email Notifications".
   - [x] Write failing tests for toggle state changes.
   - [x] Implement logic and verify tests pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Frontend - Profile Settings' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Frontend - Profile Settings' (Protocol in workflow.md) [29cc730]
 
 ## Phase 4: Frontend - Dashboard Indicator [checkpoint: ]
 
