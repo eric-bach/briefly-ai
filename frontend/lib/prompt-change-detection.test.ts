@@ -1,4 +1,4 @@
-
+(function() {
 
 // Logic to test:
 // A "Save" toast should trigger IF:
@@ -69,3 +69,4 @@ function runTests() {
 }
 
 runTests();
+})();

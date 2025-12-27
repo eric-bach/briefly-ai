@@ -14,6 +14,7 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Navbar } from '@/components/Navbar';
+import { EmailStatusIndicator } from '@/components/EmailStatusIndicator';
 import { parseInput } from '@/lib/youtube-utils';
 import { shouldShowSavePrompt, saveOverride } from '@/lib/prompt-utils';
 
@@ -56,6 +57,8 @@ export default function Dashboard() {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
   const hasAutoStartedRef = useRef(false);
@@ -70,6 +73,24 @@ export default function Dashboard() {
   useEffect(() => {
     scrollToBottom();
   }, [summary, loading]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/user/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile) {
+            setEmailEnabled(!!data.profile.emailNotificationsEnabled);
+            setNotificationEmail(data.profile.notificationEmail || '');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch user settings', e);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const fetchPromptOverride = async (videoId?: string, channelId?: string) => {
     try {
@@ -383,27 +404,35 @@ export default function Dashboard() {
               className='flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all'
               required
             />
-            <button
-              type='submit'
-              disabled={loading}
-              className='px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              {loading ? (
-                <>
-                  <Loader2 className='w-5 h-5 animate-spin' />
-                  {mode === 'video' ? 'Summarizing...' : 'Fetching...'}
-                </>
-              ) : (
-                <>
-                  {mode === 'video' ? (
-                    <Play className='w-5 h-5 fill-current' />
-                  ) : (
-                    <Search className='w-5 h-5' />
-                  )}
-                  {mode === 'video' ? 'Summarize' : 'Fetch'}
-                </>
-              )}
-            </button>
+            <div className='flex flex-col gap-2'>
+              <button
+                type='submit'
+                disabled={loading}
+                className='px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className='w-5 h-5 animate-spin' />
+                    {mode === 'video' ? 'Summarizing...' : 'Fetching...'}
+                  </>
+                ) : (
+                  <>
+                    {mode === 'video' ? (
+                      <Play className='w-5 h-5 fill-current' />
+                    ) : (
+                      <Search className='w-5 h-5' />
+                    )}
+                    {mode === 'video' ? 'Summarize' : 'Fetch'}
+                  </>
+                )}
+              </button>
+              <div className='flex justify-end'>
+                <EmailStatusIndicator
+                  enabled={emailEnabled}
+                  email={notificationEmail}
+                />
+              </div>
+            </div>
           </form>
 
           <div>

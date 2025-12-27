@@ -3,7 +3,7 @@ import {
   BedrockAgentCoreClient,
   InvokeAgentRuntimeCommand,
 } from "@aws-sdk/client-bedrock-agentcore";
-import { getUserProfile } from "@/lib/db";
+import { getUserProfile, UserProfile } from "@/lib/db";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 
 const snsClient = new SNSClient({
@@ -13,8 +13,6 @@ const snsClient = new SNSClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 });
-
-const TOPIC_ARN = process.env.NOTIFICATION_TOPIC_ARN || "";
 
 function generateSessionId(length: number): string {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -26,11 +24,23 @@ function generateSessionId(length: number): string {
   return result;
 }
 
-export async function sendEmailNotification(userId: string, videoUrl: string, summary: string) {
-  if (!TOPIC_ARN) return;
+// Type definitions for DI
+type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
+type SendSnsFn = (command: PublishCommand) => Promise<any>;
+
+export async function sendEmailNotification(
+  userId: string, 
+  videoUrl: string, 
+  summary: string,
+  // DI overrides
+  _getUserProfile: GetUserProfileFn = getUserProfile,
+  _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd)
+) {
+  const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
+  if (!topicArn) return;
 
   try {
-    const profile = await getUserProfile(userId);
+    const profile = await _getUserProfile(userId);
     if (!profile || !profile.emailNotificationsEnabled || !profile.notificationEmail) {
       return;
     }
@@ -39,12 +49,12 @@ export async function sendEmailNotification(userId: string, videoUrl: string, su
     const title = videoUrl; 
 
     const command = new PublishCommand({
-      TopicArn: TOPIC_ARN,
+      TopicArn: topicArn,
       Subject: `Briefly AI: Summary for ${title}`,
       Message: summary,
     });
 
-    await snsClient.send(command);
+    await _sendSns(command);
     console.log(`Email notification sent to ${profile.notificationEmail}`);
   } catch (error) {
     console.error("Failed to send email notification:", error);

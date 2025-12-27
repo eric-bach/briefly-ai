@@ -1,4 +1,5 @@
 
+(function() {
 // Logic for showing the badge:
 // Show if:
 // 1. originalOverride is not null (meaning we loaded something).
@@ -33,3 +34,4 @@ function runTests() {
 }
 
 runTests();
+})();

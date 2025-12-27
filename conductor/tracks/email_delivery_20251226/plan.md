@@ -48,11 +48,11 @@ This plan outlines the steps to implement email notifications for video summarie
   - [x] Connect it to the user's notification settings.
   - [x] Implement the link to `/profile` for the inactive state.
   - [x] Verify tests pass.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Frontend - Dashboard Indicator' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Frontend - Dashboard Indicator' (Protocol in workflow.md)
 
 ## Phase 5: Final Polish & Verification [checkpoint: ]
 
-- [ ] Task: End-to-End Verification
+- [~] Task: End-to-End Verification
   - [ ] Manually verify the full flow: edit email -> confirm SNS link -> generate summary -> receive email.
 - [ ] Task: Perform final linting and type check
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Polish & Verification' (Protocol in workflow.md)
