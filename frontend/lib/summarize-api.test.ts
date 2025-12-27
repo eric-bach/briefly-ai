@@ -1,17 +1,5 @@
 import { sendEmailNotification } from "../app/api/summarize/route";
 
-// Simple assertion helper
-function expect(actual: unknown, expected: unknown, message: string) {
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-        console.error(`FAIL: ${message}`);
-        console.error(`  Expected: ${JSON.stringify(expected)}`);
-        console.error(`  Actual:   ${JSON.stringify(actual)}`);
-        throw new Error(message);
-    } else {
-        console.log(`PASS: ${message}`);
-    }
-}
-
 async function runTests() {
     console.log('Running sendEmailNotification unit tests...');
     let passed = 0;

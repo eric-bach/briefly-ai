@@ -24,7 +24,7 @@ export function getEmailIndicatorState(enabled: boolean): EmailIndicatorState {
     };
 }
 
-function expectEmailLogic(actual: any, expected: any, message: string) {
+function expectEmailLogic(actual: unknown, expected: unknown, message: string) {
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
         console.error(`FAIL: ${message}`);
         console.error(`  Expected: ${JSON.stringify(expected)}`);

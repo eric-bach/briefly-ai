@@ -9,7 +9,7 @@ function shouldShowBadge(originalOverride: string | null, isSkipped: boolean): b
     return originalOverride !== null && !isSkipped;
 }
 
-function expect(actual: any, expected: any, message: string) {
+function expect(actual: unknown, expected: unknown, message: string) {
     if (actual !== expected) {
         console.error(`FAIL: ${message}`);
         console.error(`  Expected: ${expected}`);

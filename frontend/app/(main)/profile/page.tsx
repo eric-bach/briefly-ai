@@ -5,7 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { PromptList } from "@/components/PromptList";
 import { EditPromptDialog } from "@/components/EditPromptDialog";
 import { DeletePromptDialog } from "@/components/DeletePromptDialog";
-import { PromptOverride, UserProfile } from "@/lib/db";
+import { PromptOverride } from "@/lib/db";
 import { Loader2, Search, ChevronLeft, ChevronRight, Mail, Bell, Save } from "lucide-react";
 
 export default function ProfilePage() {
@@ -18,7 +18,6 @@ export default function ProfilePage() {
   const [limit] = useState(10);
 
   // Settings state
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -35,7 +34,6 @@ export default function ProfilePage() {
       const res = await fetch("/api/user/settings");
       if (res.ok) {
         const data = await res.json();
-        setProfile(data.profile);
         setEmailInput(data.profile.notificationEmail || "");
         setNotificationsEnabled(data.profile.emailNotificationsEnabled);
       }
@@ -99,8 +97,7 @@ export default function ProfilePage() {
         }),
       });
       if (res.ok) {
-        const data = await res.json();
-        setProfile(data.profile);
+        // const data = await res.json();
         // alert("Settings saved!");
       } else {
         throw new Error("Failed to save settings");

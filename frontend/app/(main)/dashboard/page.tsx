@@ -208,8 +208,8 @@ export default function Dashboard() {
         });
 
         setNextPageToken(data.nextPageToken || null);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
       }
@@ -291,8 +291,8 @@ export default function Dashboard() {
           const chunk = decoder.decode(value, { stream: true });
           setSummary((prev) => prev + chunk);
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
       }

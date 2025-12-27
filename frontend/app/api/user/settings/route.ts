@@ -18,7 +18,8 @@ const snsClient = new SNSClient({
 const TOPIC_ARN = process.env.NOTIFICATION_TOPIC_ARN || '';
 
 // TODO: Implement proper server-side authentication with Amplify
-const getUserId = async (req: NextRequest) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getUserId = async (_req: NextRequest) => {
   return 'test-user';
 };
 

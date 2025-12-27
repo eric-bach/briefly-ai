@@ -24,17 +24,6 @@ function shouldShowSavePrompt(
     return currentInput.trim() !== originalOverride.trim();
 }
 
-function expect(actual: any, expected: any, message: string) {
-    if (actual !== expected) {
-        console.error(`FAIL: ${message}`);
-        console.error(`  Expected: ${expected}`);
-        console.error(`  Actual:   ${actual}`);
-        // throw new Error(message);
-    } else {
-        console.log(`PASS: ${message}`);
-    }
-}
-
 function runTests() {
     console.log('Running prompt change detection tests...');
     let passed = 0;

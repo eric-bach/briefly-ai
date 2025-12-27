@@ -4,7 +4,7 @@ import {
   InvokeAgentRuntimeCommand,
 } from "@aws-sdk/client-bedrock-agentcore";
 import { getUserProfile, UserProfile } from "@/lib/db";
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { SNSClient, PublishCommand, PublishCommandOutput } from "@aws-sdk/client-sns";
 
 const snsClient = new SNSClient({
   region: process.env.AWS_REGION || "us-east-1",
@@ -26,7 +26,7 @@ function generateSessionId(length: number): string {
 
 // Type definitions for DI
 type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
-type SendSnsFn = (command: PublishCommand) => Promise<any>;
+type SendSnsFn = (command: PublishCommand) => Promise<PublishCommandOutput>;
 
 export async function sendEmailNotification(
   userId: string, 
@@ -34,7 +34,8 @@ export async function sendEmailNotification(
   summary: string,
   // DI overrides
   _getUserProfile: GetUserProfileFn = getUserProfile,
-  _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd) as Promise<any>
 ) {
   const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
   if (!topicArn) return;
@@ -104,12 +105,12 @@ export async function POST(req: Request) {
     }
 
     // Stream the response directly
-    // @ts-ignore - The SDK types might not perfectly align with Web Streams yet, but the underlying stream is compatible
     const sourceStream = response.response.transformToWebStream
       ? response.response.transformToWebStream()
       : new ReadableStream({
           async start(controller) {
             // Fallback for async iterable if transformToWebStream isn't available
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             for await (const chunk of response.response as any) {
               controller.enqueue(chunk);
             }
@@ -141,10 +142,10 @@ export async function POST(req: Request) {
         "Content-Type": "text/plain",
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in proxy:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error", details: (error as Error).message || String(error) },
       { status: 500 }
     );
   }

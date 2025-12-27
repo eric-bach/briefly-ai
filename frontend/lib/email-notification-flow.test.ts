@@ -1,5 +1,5 @@
 import { sendEmailNotification } from "../app/api/summarize/route";
-import { PublishCommand } from "@aws-sdk/client-sns";
+import { PublishCommand, PublishCommandOutput } from "@aws-sdk/client-sns";
 
 // Simple assertion helper
 function expect(actual: unknown, expected: unknown, message: string) {
@@ -26,7 +26,7 @@ async function runTests() {
         // Test 1: Should send email when user has notifications enabled
         console.log("Test 1: User with notifications enabled");
         let snsCalled = false;
-        let snsCommand: any = null;
+        let snsCommand: PublishCommand | null = null;
         
         const mockProfileEnabled = async (userId: string) => ({
             userId,
@@ -39,14 +39,16 @@ async function runTests() {
         const mockSendSns = async (cmd: PublishCommand) => {
             snsCalled = true;
             snsCommand = cmd;
-            return {};
+            return {} as PublishCommandOutput;
         };
 
         await sendEmailNotification("user-1", "http://video.url", "Summary text", mockProfileEnabled, mockSendSns);
 
         expect(snsCalled, true, "SNS should be called");
-        expect(snsCommand?.input?.TopicArn, "arn:aws:sns:us-east-1:123456789012:test-topic", "TopicArn matches");
-        expect(snsCommand?.input?.Subject, "Briefly AI: Summary for http://video.url", "Subject matches");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((snsCommand as any)?.input?.TopicArn, "arn:aws:sns:us-east-1:123456789012:test-topic", "TopicArn matches");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((snsCommand as any)?.input?.Subject, "Briefly AI: Summary for http://video.url", "Subject matches");
         passed++;
 
         // Test 2: Should NOT send email when user has notifications disabled
@@ -88,7 +90,7 @@ async function runTests() {
         snsCalled = false;
         let profileCalled = false;
         
-        const mockProfileSpy = async (userId: string) => {
+        const mockProfileSpy = async () => {
             profileCalled = true;
             return null;
         };

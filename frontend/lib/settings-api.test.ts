@@ -21,13 +21,14 @@ async function runTests() {
 
     try {
         // Mock DB State
-        let mockDb: Record<string, any> = {};
+        const mockDb: Record<string, unknown> = {};
         
         const mockGet = async (userId: string) => {
-            return mockDb[userId] || null;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (mockDb[userId] as any) || null;
         };
         
-        const mockSave = async (profile: any) => {
+        const mockSave = async (profile: { userId: string }) => {
             mockDb[profile.userId] = profile;
         };
 
