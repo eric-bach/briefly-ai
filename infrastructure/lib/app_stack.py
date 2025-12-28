@@ -52,6 +52,18 @@ class AppStack(Stack):
         # Grant DynamoDB access to Vercel User
         data_stack.resources.table.grant_read_write_data(vercel_user)
 
+        # Grant SNS access to Vercel User
+        data_stack.resources.notification_topic.grant_publish(vercel_user)
+        # Also need subscribe/unsubscribe/list permissions for managing subscriptions
+        vercel_user.add_to_policy(PolicyStatement(
+            actions=[
+                "sns:Subscribe",
+                "sns:Unsubscribe",
+                "sns:ListSubscriptionsByTopic"
+            ],
+            resources=[data_stack.resources.notification_topic.topic_arn]
+        ))
+
         CfnOutput(self, "VercelUserOutput",
             value=vercel_user.user_name,
             description="The IAM User Name for Vercel. Create Access Keys for this user in AWS Console."

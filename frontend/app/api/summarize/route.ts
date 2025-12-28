@@ -3,6 +3,16 @@ import {
   BedrockAgentCoreClient,
   InvokeAgentRuntimeCommand,
 } from "@aws-sdk/client-bedrock-agentcore";
+import { getUserProfile, UserProfile } from "@/lib/db";
+import { SNSClient, PublishCommand, PublishCommandOutput } from "@aws-sdk/client-sns";
+
+const snsClient = new SNSClient({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+  },
+});
 
 function generateSessionId(length: number): string {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -12,6 +22,44 @@ function generateSessionId(length: number): string {
     result += characters[randomIndex];
   }
   return result;
+}
+
+// Type definitions for DI
+type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
+type SendSnsFn = (command: PublishCommand) => Promise<PublishCommandOutput>;
+
+export async function sendEmailNotification(
+  userId: string, 
+  videoUrl: string, 
+  summary: string,
+  // DI overrides
+  _getUserProfile: GetUserProfileFn = getUserProfile,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd) as Promise<any>
+) {
+  const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
+  if (!topicArn) return;
+
+  try {
+    const profile = await _getUserProfile(userId);
+    if (!profile || !profile.emailNotificationsEnabled || !profile.notificationEmail) {
+      return;
+    }
+
+    // Try to extract a title from the URL or just use URL
+    const title = videoUrl; 
+
+    const command = new PublishCommand({
+      TopicArn: topicArn,
+      Subject: `Briefly AI: Summary for ${title}`,
+      Message: summary,
+    });
+
+    await _sendSns(command);
+    console.log(`Email notification sent to ${profile.notificationEmail}`);
+  } catch (error) {
+    console.error("Failed to send email notification:", error);
+  }
 }
 
 export async function POST(req: Request) {
@@ -49,19 +97,6 @@ export async function POST(req: Request) {
     const command = new InvokeAgentRuntimeCommand(input);
     const response = await client.send(command);
 
-    // The response body from Bedrock Agent Core is a readable stream or byte array
-    // dependent on the specific SDK version details, but usually `response.response.body`
-    // or we transform it. Based on user snippet:
-    // "const textResponse = await response.response.transformToString();"
-    // However, the snippet shows `response.response`? Wait, the snippet was:
-    // const response = await client.send(command);
-    // const textResponse = await response.response.transformToString();
-
-    // Let's verify the snippet:
-    // const command = new InvokeAgentRuntimeCommand(input);
-    // const response = await client.send(command);
-    // const textResponse = await response.response.transformToString();
-
     if (!response.response) {
       return NextResponse.json(
         { error: "Empty response from agent" },
@@ -70,12 +105,12 @@ export async function POST(req: Request) {
     }
 
     // Stream the response directly
-    // @ts-ignore - The SDK types might not perfectly align with Web Streams yet, but the underlying stream is compatible
-    const stream = response.response.transformToWebStream
+    const sourceStream = response.response.transformToWebStream
       ? response.response.transformToWebStream()
       : new ReadableStream({
           async start(controller) {
             // Fallback for async iterable if transformToWebStream isn't available
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             for await (const chunk of response.response as any) {
               controller.enqueue(chunk);
             }
@@ -83,16 +118,34 @@ export async function POST(req: Request) {
           },
         });
 
+    // Capture the summary for email notification
+    let fullSummary = "";
+    const decoder = new TextDecoder();
+    
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        fullSummary += decoder.decode(chunk, { stream: true });
+        controller.enqueue(chunk);
+      },
+      flush() {
+        fullSummary += decoder.decode();
+        // Fire and forget email notification
+        sendEmailNotification("test-user", videoUrl, fullSummary).catch(console.error);
+      }
+    });
+
+    const stream = sourceStream.pipeThrough(transformStream);
+
     return new NextResponse(stream, {
       status: 200,
       headers: {
         "Content-Type": "text/plain",
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in proxy:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message },
+      { error: "Internal Server Error", details: (error as Error).message || String(error) },
       { status: 500 }
     );
   }

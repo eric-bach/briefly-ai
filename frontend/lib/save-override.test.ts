@@ -10,13 +10,11 @@
 
 // We'll create a helper 'saveOverride' in prompt-utils.ts (or similar) to handle the API call.
 
-import { PromptOverride } from './db';
-
 // Mock fetch
 const globalFetch = global.fetch;
 
 async function saveOverrideApi(
-    userId: string, // In real app, this is handled by server session, but client might need to know context? No, client just sends targetId.
+    _userId: string, // In real app, this is handled by server session, but client might need to know context? No, client just sends targetId.
     // Actually, the API determines User ID. Client just sends: targetId, prompt, type.
     targetId: string,
     prompt: string,
@@ -29,7 +27,7 @@ async function saveOverrideApi(
             body: JSON.stringify({ targetId, prompt, type })
         });
         return res.ok;
-    } catch (e) {
+    } catch {
         return false;
     }
 }

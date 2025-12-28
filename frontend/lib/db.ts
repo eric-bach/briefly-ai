@@ -31,9 +31,42 @@ export interface PromptOverride {
   channelTitle?: string;
 }
 
+export interface UserProfile {
+  userId: string;
+  targetId: "profile"; // Fixed sort key for profile data
+  notificationEmail?: string;
+  emailNotificationsEnabled: boolean;
+  updatedAt: string;
+}
+
 export interface PaginatedPromptOverrides {
   items: PromptOverride[];
   nextToken: string | null;
+}
+
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+  const command = new GetCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      userId,
+      targetId: "profile",
+    },
+  });
+
+  const response = await docClient.send(command);
+  return (response.Item as UserProfile) || null;
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  const command = new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      ...profile,
+      targetId: "profile", // Ensure targetId is always "profile"
+    },
+  });
+
+  await docClient.send(command);
 }
 
 export async function getPromptOverride(

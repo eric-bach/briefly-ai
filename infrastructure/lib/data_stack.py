@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_cognito as cognito,
     aws_dynamodb as dynamodb,
     aws_ec2 as ec2,
+    aws_sns as sns,
     CfnOutput,
     RemovalPolicy,
 )
@@ -15,6 +16,7 @@ from dotenv import load_dotenv
 class DataStackResources:
     vpc: ec2.Vpc
     table: dynamodb.Table
+    notification_topic: sns.Topic
 
 class DataStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, app_name: str, env_name: str, **kwargs) -> None:
@@ -105,6 +107,18 @@ class DataStack(Stack):
         )
 
         #
+        # Amazon SNS
+        #
+        
+        # Create an SNS Topic for email notifications
+        notification_topic = sns.Topic(
+            self,
+            "NotificationTopic",
+            topic_name=f"{APP_NAME}-notifications-{ENV_NAME}",
+            display_name="Briefly AI Notifications"
+        )
+
+        #
         # Outputs
         #
 
@@ -133,6 +147,15 @@ class DataStack(Stack):
             description=f"{APP_NAME} Prompt Overrides DynamoDB Table Name",
             export_name=f"{APP_NAME}-prompt-overrides-table-name"
         )
+
+        # Output the SNS Topic ARN
+        CfnOutput(
+            self,
+            "NotificationTopicArn",
+            value=notification_topic.topic_arn,
+            description=f"{APP_NAME} Notification SNS Topic ARN",
+            export_name=f"{APP_NAME}-notification-topic-arn"
+        )
         
         #
         # Properties
@@ -141,4 +164,5 @@ class DataStack(Stack):
         self.resources = DataStackResources(
             vpc=vpc,
             table=table,
+            notification_topic=notification_topic,
         )

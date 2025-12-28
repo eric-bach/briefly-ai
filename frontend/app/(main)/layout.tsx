@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { Amplify } from "aws-amplify";
 import { ResourcesConfig } from "@aws-amplify/core";
 import {
@@ -15,7 +14,7 @@ import {
   View,
 } from "@aws-amplify/ui-react";
 import { Turnstile } from "next-turnstile";
-import { AlertCircle, Menu, Youtube } from "lucide-react";
+import { AlertCircle, Youtube } from "lucide-react";
 
 import "@aws-amplify/ui-react/styles.css";
 
