@@ -1,22 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 import {
   BedrockAgentCoreClient,
   InvokeAgentRuntimeCommand,
-} from "@aws-sdk/client-bedrock-agentcore";
-import { getUserProfile, UserProfile } from "@/lib/db";
-import { SNSClient, PublishCommand, PublishCommandOutput } from "@aws-sdk/client-sns";
+} from '@aws-sdk/client-bedrock-agentcore';
+import { getUserProfile, UserProfile } from '@/lib/db';
+import {
+  SNSClient,
+  PublishCommand,
+  PublishCommandOutput,
+} from '@aws-sdk/client-sns';
 
 const snsClient = new SNSClient({
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
 });
 
 function generateSessionId(length: number): string {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  let result = "";
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  let result = '';
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     result += characters[randomIndex];
@@ -29,8 +33,8 @@ type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
 type SendSnsFn = (command: PublishCommand) => Promise<PublishCommandOutput>;
 
 export async function sendEmailNotification(
-  userId: string, 
-  videoUrl: string, 
+  userId: string,
+  videoUrl: string,
   summary: string,
   // DI overrides
   _getUserProfile: GetUserProfileFn = getUserProfile,
@@ -38,16 +42,28 @@ export async function sendEmailNotification(
   _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd) as Promise<any>
 ) {
   const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
-  if (!topicArn) return;
+  if (!topicArn) {
+    console.warn(
+      'NOTIFICATION_TOPIC_ARN is not set. Skipping email notification.'
+    );
+    return;
+  }
 
   try {
     const profile = await _getUserProfile(userId);
-    if (!profile || !profile.emailNotificationsEnabled || !profile.notificationEmail) {
+    if (
+      !profile ||
+      !profile.emailNotificationsEnabled ||
+      !profile.notificationEmail
+    ) {
+      console.log(
+        `Email notifications disabled or missing email for user ${userId}`
+      );
       return;
     }
 
     // Try to extract a title from the URL or just use URL
-    const title = videoUrl; 
+    const title = videoUrl;
 
     const command = new PublishCommand({
       TopicArn: topicArn,
@@ -55,10 +71,11 @@ export async function sendEmailNotification(
       Message: summary,
     });
 
-    await _sendSns(command);
+    const response = await _sendSns(command);
     console.log(`Email notification sent to ${profile.notificationEmail}`);
+    console.log(response);
   } catch (error) {
-    console.error("Failed to send email notification:", error);
+    console.error('Failed to send email notification:', error);
   }
 }
 
@@ -68,7 +85,7 @@ export async function POST(req: Request) {
     const { videoUrl, additionalInstructions } = body;
 
     if (!videoUrl) {
-      return NextResponse.json({ error: "Missing videoUrl" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 });
     }
 
     const agentRuntimeArn =
@@ -78,17 +95,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Server configuration error: Missing NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN",
+            'Server configuration error: Missing NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN',
         },
         { status: 500 }
       );
     }
 
-    const client = new BedrockAgentCoreClient({ region: "us-east-1" });
+    const client = new BedrockAgentCoreClient({ region: 'us-east-1' });
     const input = {
       runtimeSessionId: generateSessionId(33),
       agentRuntimeArn: agentRuntimeArn,
-      qualifier: "DEFAULT",
+      qualifier: 'DEFAULT',
       payload: new TextEncoder().encode(
         JSON.stringify({ videoUrl, additionalInstructions })
       ),
@@ -99,7 +116,7 @@ export async function POST(req: Request) {
 
     if (!response.response) {
       return NextResponse.json(
-        { error: "Empty response from agent" },
+        { error: 'Empty response from agent' },
         { status: 500 }
       );
     }
@@ -119,19 +136,23 @@ export async function POST(req: Request) {
         });
 
     // Capture the summary for email notification
-    let fullSummary = "";
+    let fullSummary = '';
     const decoder = new TextDecoder();
-    
+
     const transformStream = new TransformStream({
       transform(chunk, controller) {
         fullSummary += decoder.decode(chunk, { stream: true });
         controller.enqueue(chunk);
       },
-      flush() {
+      async flush() {
         fullSummary += decoder.decode();
-        // Fire and forget email notification
-        sendEmailNotification("test-user", videoUrl, fullSummary).catch(console.error);
-      }
+        // Await email notification to ensure execution before process termination
+        try {
+          await sendEmailNotification('test-user', videoUrl, fullSummary);
+        } catch (e) {
+          console.error('Error sending email notification:', e);
+        }
+      },
     });
 
     const stream = sourceStream.pipeThrough(transformStream);
@@ -139,13 +160,16 @@ export async function POST(req: Request) {
     return new NextResponse(stream, {
       status: 200,
       headers: {
-        "Content-Type": "text/plain",
+        'Content-Type': 'text/plain',
       },
     });
   } catch (error) {
-    console.error("Error in proxy:", error);
+    console.error('Error in proxy:', error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: (error as Error).message || String(error) },
+      {
+        error: 'Internal Server Error',
+        details: (error as Error).message || String(error),
+      },
       { status: 500 }
     );
   }

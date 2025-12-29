@@ -35,12 +35,29 @@ export async function manageSnsSubscription(email: string, enabled: boolean) {
       TopicArn: TOPIC_ARN,
     });
 
-    const { Subscriptions } = await snsClient.send(listCommand);
-    const existingSub = Subscriptions?.find((s) => s.Endpoint === email);
+    let subscriptions: any[] = [];
+    let nextToken: string | undefined;
+
+    do {
+      const cmd: ListSubscriptionsByTopicCommand = new ListSubscriptionsByTopicCommand({
+        TopicArn: TOPIC_ARN,
+        NextToken: nextToken,
+      });
+      const response = await snsClient.send(cmd);
+      if (response.Subscriptions) {
+        subscriptions = [...subscriptions, ...response.Subscriptions];
+      }
+      nextToken = response.NextToken;
+    } while (nextToken);
+
+    const existingSub = subscriptions.find((s) => s.Endpoint === email);
 
     if (enabled) {
-      if (!existingSub) {
-        // Subscribe
+      if (
+        !existingSub ||
+        existingSub.SubscriptionArn === 'PendingConfirmation'
+      ) {
+        // Subscribe (or resend confirmation if pending)
         const subCommand = new SubscribeCommand({
           TopicArn: TOPIC_ARN,
           Protocol: 'email',
@@ -137,6 +154,14 @@ export async function handlePost(
       (notificationEmail !== oldProfile?.notificationEmail ||
         emailNotificationsEnabled !== oldProfile?.emailNotificationsEnabled)
     ) {
+      // If email changed, unsubscribe the old one first
+      if (
+        oldProfile?.notificationEmail &&
+        oldProfile.notificationEmail !== notificationEmail
+      ) {
+        await manageSnsSubscription(oldProfile.notificationEmail, false);
+      }
+
       await manageSnsSubscription(
         notificationEmail,
         !!emailNotificationsEnabled
