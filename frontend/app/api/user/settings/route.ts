@@ -149,23 +149,23 @@ export async function handlePost(
     await dbSave(profile);
 
     // Manage SNS subscription if email or enabled status changed
-    if (
-      notificationEmail &&
-      (notificationEmail !== oldProfile?.notificationEmail ||
-        emailNotificationsEnabled !== oldProfile?.emailNotificationsEnabled)
-    ) {
+    const emailChanged = notificationEmail !== oldProfile?.notificationEmail;
+    const statusChanged =
+      emailNotificationsEnabled !== oldProfile?.emailNotificationsEnabled;
+
+    if (emailChanged || statusChanged) {
       // If email changed, unsubscribe the old one first
-      if (
-        oldProfile?.notificationEmail &&
-        oldProfile.notificationEmail !== notificationEmail
-      ) {
+      if (oldProfile?.notificationEmail && emailChanged) {
         await manageSnsSubscription(oldProfile.notificationEmail, false);
       }
 
-      await manageSnsSubscription(
-        notificationEmail,
-        !!emailNotificationsEnabled
-      );
+      // Manage SNS for the new/current email if it exists
+      if (notificationEmail) {
+        await manageSnsSubscription(
+          notificationEmail,
+          !!emailNotificationsEnabled
+        );
+      }
     }
 
     return NextResponse.json({ success: true, profile });
