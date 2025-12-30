@@ -1,30 +1,30 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
   DeleteCommand,
-} from "@aws-sdk/lib-dynamodb";
+} from '@aws-sdk/lib-dynamodb';
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
 });
 
 export const docClient = DynamoDBDocumentClient.from(client);
 
 export const TABLE_NAME =
-  process.env.PROMPT_OVERRIDES_TABLE_NAME || "briefly-ai-data-dev";
+  process.env.PROMPT_OVERRIDES_TABLE_NAME || 'briefly-ai-data-dev';
 
 export interface PromptOverride {
   userId: string;
   targetId: string;
   prompt: string;
-  type: "video" | "channel";
+  type: 'video' | 'channel';
   updatedAt: string;
   targetTitle?: string;
   targetThumbnail?: string;
@@ -33,7 +33,7 @@ export interface PromptOverride {
 
 export interface UserProfile {
   userId: string;
-  targetId: "profile"; // Fixed sort key for profile data
+  targetId: 'profile'; // Fixed sort key for profile data
   notificationEmail?: string;
   emailNotificationsEnabled: boolean;
   updatedAt: string;
@@ -44,12 +44,14 @@ export interface PaginatedPromptOverrides {
   nextToken: string | null;
 }
 
-export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+export async function getUserProfile(
+  userId: string
+): Promise<UserProfile | null> {
   const command = new GetCommand({
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId: "profile",
+      targetId: 'profile',
     },
   });
 
@@ -62,7 +64,7 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
     TableName: TABLE_NAME,
     Item: {
       ...profile,
-      targetId: "profile", // Ensure targetId is always "profile"
+      targetId: 'profile', // Ensure targetId is always "profile"
     },
   });
 
@@ -120,24 +122,26 @@ export async function listPromptOverrides(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
     TableName: TABLE_NAME,
-    KeyConditionExpression: "userId = :uid",
+    KeyConditionExpression: 'userId = :uid',
     ExpressionAttributeValues: {
-      ":uid": userId,
+      ':uid': userId,
     },
     Limit: limit,
   };
 
   if (nextToken) {
     try {
-        params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'));
+      params.ExclusiveStartKey = JSON.parse(
+        Buffer.from(nextToken, 'base64').toString('utf-8')
+      );
     } catch (e) {
-        console.error("Invalid nextToken", e);
+      console.error('Invalid nextToken', e);
     }
   }
 
   if (filter) {
-      params.FilterExpression = "contains(prompt, :f)";
-      params.ExpressionAttributeValues[":f"] = filter;
+    params.FilterExpression = 'contains(prompt, :f)';
+    params.ExpressionAttributeValues[':f'] = filter;
   }
 
   const command = new QueryCommand(params);
@@ -145,7 +149,9 @@ export async function listPromptOverrides(
 
   let newNextToken: string | null = null;
   if (response.LastEvaluatedKey) {
-      newNextToken = Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64');
+    newNextToken = Buffer.from(
+      JSON.stringify(response.LastEvaluatedKey)
+    ).toString('base64');
   }
 
   return {

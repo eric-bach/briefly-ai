@@ -52,16 +52,10 @@ class AppStack(Stack):
         # Grant DynamoDB access to Vercel User
         data_stack.resources.table.grant_read_write_data(vercel_user)
 
-        # Grant SNS access to Vercel User
-        data_stack.resources.notification_topic.grant_publish(vercel_user)
-        # Also need subscribe/unsubscribe/list permissions for managing subscriptions
+        # Grant SES access to Vercel User
         vercel_user.add_to_policy(PolicyStatement(
-            actions=[
-                "sns:Subscribe",
-                "sns:Unsubscribe",
-                "sns:ListSubscriptionsByTopic"
-            ],
-            resources=[data_stack.resources.notification_topic.topic_arn]
+            actions=["ses:SendEmail"],
+            resources=["*"]
         ))
 
         CfnOutput(self, "VercelUserOutput",

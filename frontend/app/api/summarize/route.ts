@@ -5,12 +5,12 @@ import {
 } from '@aws-sdk/client-bedrock-agentcore';
 import { getUserProfile, UserProfile } from '@/lib/db';
 import {
-  SNSClient,
-  PublishCommand,
-  PublishCommandOutput,
-} from '@aws-sdk/client-sns';
+  SESClient,
+  SendEmailCommand,
+  SendEmailCommandOutput,
+} from '@aws-sdk/client-ses';
 
-const snsClient = new SNSClient({
+const sesClient = new SESClient({
   region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -30,7 +30,9 @@ function generateSessionId(length: number): string {
 
 // Type definitions for DI
 type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
-type SendSnsFn = (command: PublishCommand) => Promise<PublishCommandOutput>;
+type SendEmailFn = (
+  command: SendEmailCommand
+) => Promise<SendEmailCommandOutput>;
 
 export async function sendEmailNotification(
   userId: string,
@@ -39,15 +41,10 @@ export async function sendEmailNotification(
   // DI overrides
   _getUserProfile: GetUserProfileFn = getUserProfile,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _sendSns: SendSnsFn = (cmd) => snsClient.send(cmd) as Promise<any>
+  _sendEmail: SendEmailFn = (cmd) => sesClient.send(cmd) as Promise<any>
 ) {
-  const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
-  if (!topicArn) {
-    console.warn(
-      'NOTIFICATION_TOPIC_ARN is not set. Skipping email notification.'
-    );
-    return;
-  }
+  // Legacy topic check removed for SES
+  // const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
 
   try {
     const profile = await _getUserProfile(userId);
@@ -62,18 +59,32 @@ export async function sendEmailNotification(
       return;
     }
 
+    console.log(`Sending email notification to ${profile.notificationEmail}`);
+
     // Try to extract a title from the URL or just use URL
     const title = videoUrl;
 
-    const command = new PublishCommand({
-      TopicArn: topicArn,
-      Subject: `Briefly AI: Summary for ${title}`,
-      Message: summary,
+    // Use the user's email as both Source and Destination for now (simplest for Sandbox)
+    // In production, Source should be a verified domain/email like 'noreply@briefly.ai'
+    const command = new SendEmailCommand({
+      Source: profile.notificationEmail,
+      Destination: {
+        ToAddresses: [profile.notificationEmail],
+      },
+      Message: {
+        Subject: {
+          Data: `Briefly AI: Summary for ${title}`,
+        },
+        Body: {
+          Text: {
+            Data: summary,
+          },
+        },
+      },
     });
 
-    const response = await _sendSns(command);
+    const response = await _sendEmail(command);
     console.log(`Email notification sent to ${profile.notificationEmail}`);
-    console.log(response);
   } catch (error) {
     console.error('Failed to send email notification:', error);
   }
@@ -148,6 +159,7 @@ export async function POST(req: Request) {
         fullSummary += decoder.decode();
         // Await email notification to ensure execution before process termination
         try {
+          console.log('Sending email notification...');
           await sendEmailNotification('test-user', videoUrl, fullSummary);
         } catch (e) {
           console.error('Error sending email notification:', e);
