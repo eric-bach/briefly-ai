@@ -33,7 +33,7 @@ export interface PromptOverride {
 
 export interface UserProfile {
   userId: string;
-  targetId: 'profile'; // Fixed sort key for profile data
+  targetId: 'PROFILE#data'; // Fixed sort key for profile data
   notificationEmail?: string;
   emailNotificationsEnabled: boolean;
   updatedAt: string;
@@ -51,7 +51,7 @@ export async function getUserProfile(
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId: 'profile',
+      targetId: 'PROFILE#data',
     },
   });
 
@@ -64,7 +64,7 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
     TableName: TABLE_NAME,
     Item: {
       ...profile,
-      targetId: 'profile', // Ensure targetId is always "profile"
+      targetId: 'PROFILE#data', // Ensure targetId is always "PROFILE#data"
     },
   });
 
@@ -79,12 +79,14 @@ export async function getPromptOverride(
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId,
+      targetId: `PROMPT#${targetId}`,
     },
   });
 
   const response = await docClient.send(command);
-  return (response.Item as PromptOverride) || null;
+  if (!response.Item) return null;
+  const item = response.Item as PromptOverride;
+  return { ...item, targetId: item.targetId.replace(/^PROMPT#/, '') };
 }
 
 export async function savePromptOverride(
@@ -92,7 +94,10 @@ export async function savePromptOverride(
 ): Promise<void> {
   const command = new PutCommand({
     TableName: TABLE_NAME,
-    Item: override,
+    Item: {
+      ...override,
+      targetId: `PROMPT#${override.targetId}`,
+    },
   });
 
   await docClient.send(command);
@@ -106,7 +111,7 @@ export async function deletePromptOverride(
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId,
+      targetId: `PROMPT#${targetId}`,
     },
   });
 
@@ -122,9 +127,10 @@ export async function listPromptOverrides(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
     TableName: TABLE_NAME,
-    KeyConditionExpression: 'userId = :uid',
+    KeyConditionExpression: 'userId = :uid and begins_with(targetId, :prefix)',
     ExpressionAttributeValues: {
       ':uid': userId,
+      ':prefix': 'PROMPT#',
     },
     Limit: limit,
   };
@@ -155,7 +161,11 @@ export async function listPromptOverrides(
   }
 
   return {
-    items: (response.Items as PromptOverride[]) || [],
+    items:
+      (response.Items as PromptOverride[])?.map((item) => ({
+        ...item,
+        targetId: item.targetId.replace(/^PROMPT#/, ''),
+      })) || [],
     nextToken: newNextToken,
   };
 }

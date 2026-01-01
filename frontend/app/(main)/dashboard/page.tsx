@@ -395,16 +395,16 @@ export default function Dashboard() {
         </div>
 
         <div className='bg-white rounded-xl shadow-lg p-6 border border-gray-100 space-y-4'>
-          <form onSubmit={handleSubmit} className='flex gap-4'>
-            <input
-              type='text'
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder='Paste a YouTube link or Channel name...'
-              className='flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all'
-              required
-            />
-            <div className='flex flex-col gap-2'>
+          <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
+            <div className='flex gap-4 w-full'>
+              <input
+                type='text'
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder='Paste a YouTube link or Channel name...'
+                className='flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all'
+                required
+              />
               <button
                 type='submit'
                 disabled={loading}
@@ -426,12 +426,12 @@ export default function Dashboard() {
                   </>
                 )}
               </button>
-              <div className='flex justify-end'>
-                <EmailStatusIndicator
-                  enabled={emailEnabled}
-                  email={notificationEmail}
-                />
-              </div>
+            </div>
+            <div className='flex justify-start'>
+              <EmailStatusIndicator
+                enabled={emailEnabled}
+                email={notificationEmail}
+              />
             </div>
           </form>
 
