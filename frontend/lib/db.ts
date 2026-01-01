@@ -17,8 +17,7 @@ const client = new DynamoDBClient({
 
 export const docClient = DynamoDBDocumentClient.from(client);
 
-export const TABLE_NAME =
-  process.env.PROMPT_OVERRIDES_TABLE_NAME || 'briefly-ai-data-dev';
+export const TABLE_NAME = process.env.PROMPT_OVERRIDES_TABLE_NAME;
 
 export interface PromptOverride {
   userId: string;
