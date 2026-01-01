@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserProfile, saveUserProfile, UserProfile } from '@/lib/db';
-// SNS Logic removed for SES migration
-// const TOPIC_ARN = process.env.NOTIFICATION_TOPIC_ARN || '';
 
 // TODO: Implement proper server-side authentication with Amplify
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getUserId = async (_req: NextRequest) => {
   return 'test-user';
 };
-
-// Function manageSnsSubscription removed.
 
 export async function GET(req: NextRequest) {
   return handleGet(req);
@@ -27,7 +23,7 @@ export async function handleGet(
       // Default profile
       profile = {
         userId,
-        targetId: 'profile',
+        targetId: 'PROFILE#data',
         emailNotificationsEnabled: false,
         updatedAt: new Date().toISOString(),
       };
@@ -64,7 +60,7 @@ export async function handlePost(
 
     const profile: UserProfile = {
       userId,
-      targetId: 'profile',
+      targetId: 'PROFILE#data',
       notificationEmail,
       emailNotificationsEnabled: !!emailNotificationsEnabled,
       updatedAt: new Date().toISOString(),
@@ -88,10 +84,6 @@ export async function handlePost(
     console.log(
       `[SettingsAPI] oldEnabled: ${oldProfile?.emailNotificationsEnabled}, newEnabled: ${emailNotificationsEnabled}`
     );
-
-    // SNS Management logic removed.
-    // We now use SES to send emails directly to the stored 'notificationEmail'
-    // at the time of summary generation.
 
     return NextResponse.json({ success: true, profile });
   } catch (error: unknown) {
