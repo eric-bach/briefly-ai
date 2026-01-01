@@ -1,4 +1,4 @@
-
+(function() {
 
 // Logic to test:
 // A "Save" toast should trigger IF:
@@ -22,17 +22,6 @@ function shouldShowSavePrompt(
 
     // If we have an original override, only show if different
     return currentInput.trim() !== originalOverride.trim();
-}
-
-function expect(actual: any, expected: any, message: string) {
-    if (actual !== expected) {
-        console.error(`FAIL: ${message}`);
-        console.error(`  Expected: ${expected}`);
-        console.error(`  Actual:   ${actual}`);
-        // throw new Error(message);
-    } else {
-        console.log(`PASS: ${message}`);
-    }
 }
 
 function runTests() {
@@ -69,3 +58,4 @@ function runTests() {
 }
 
 runTests();
+})();

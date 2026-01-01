@@ -1,39 +1,74 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
   DeleteCommand,
-} from "@aws-sdk/lib-dynamodb";
+} from '@aws-sdk/lib-dynamodb';
 
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
 });
 
 export const docClient = DynamoDBDocumentClient.from(client);
 
 export const TABLE_NAME =
-  process.env.PROMPT_OVERRIDES_TABLE_NAME || "briefly-ai-data-dev";
+  process.env.PROMPT_OVERRIDES_TABLE_NAME || 'briefly-ai-data-dev';
 
 export interface PromptOverride {
   userId: string;
   targetId: string;
   prompt: string;
-  type: "video" | "channel";
+  type: 'video' | 'channel';
   updatedAt: string;
   targetTitle?: string;
   targetThumbnail?: string;
   channelTitle?: string;
 }
 
+export interface UserProfile {
+  userId: string;
+  targetId: 'PROFILE#data'; // Fixed sort key for profile data
+  notificationEmail?: string;
+  emailNotificationsEnabled: boolean;
+  updatedAt: string;
+}
+
 export interface PaginatedPromptOverrides {
   items: PromptOverride[];
   nextToken: string | null;
+}
+
+export async function getUserProfile(
+  userId: string
+): Promise<UserProfile | null> {
+  const command = new GetCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      userId,
+      targetId: 'PROFILE#data',
+    },
+  });
+
+  const response = await docClient.send(command);
+  return (response.Item as UserProfile) || null;
+}
+
+export async function saveUserProfile(profile: UserProfile): Promise<void> {
+  const command = new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      ...profile,
+      targetId: 'PROFILE#data', // Ensure targetId is always "PROFILE#data"
+    },
+  });
+
+  await docClient.send(command);
 }
 
 export async function getPromptOverride(
@@ -44,12 +79,14 @@ export async function getPromptOverride(
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId,
+      targetId: `PROMPT#${targetId}`,
     },
   });
 
   const response = await docClient.send(command);
-  return (response.Item as PromptOverride) || null;
+  if (!response.Item) return null;
+  const item = response.Item as PromptOverride;
+  return { ...item, targetId: item.targetId.replace(/^PROMPT#/, '') };
 }
 
 export async function savePromptOverride(
@@ -57,7 +94,10 @@ export async function savePromptOverride(
 ): Promise<void> {
   const command = new PutCommand({
     TableName: TABLE_NAME,
-    Item: override,
+    Item: {
+      ...override,
+      targetId: `PROMPT#${override.targetId}`,
+    },
   });
 
   await docClient.send(command);
@@ -71,7 +111,7 @@ export async function deletePromptOverride(
     TableName: TABLE_NAME,
     Key: {
       userId,
-      targetId,
+      targetId: `PROMPT#${targetId}`,
     },
   });
 
@@ -87,24 +127,27 @@ export async function listPromptOverrides(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
     TableName: TABLE_NAME,
-    KeyConditionExpression: "userId = :uid",
+    KeyConditionExpression: 'userId = :uid and begins_with(targetId, :prefix)',
     ExpressionAttributeValues: {
-      ":uid": userId,
+      ':uid': userId,
+      ':prefix': 'PROMPT#',
     },
     Limit: limit,
   };
 
   if (nextToken) {
     try {
-        params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'));
+      params.ExclusiveStartKey = JSON.parse(
+        Buffer.from(nextToken, 'base64').toString('utf-8')
+      );
     } catch (e) {
-        console.error("Invalid nextToken", e);
+      console.error('Invalid nextToken', e);
     }
   }
 
   if (filter) {
-      params.FilterExpression = "contains(prompt, :f)";
-      params.ExpressionAttributeValues[":f"] = filter;
+    params.FilterExpression = 'contains(prompt, :f)';
+    params.ExpressionAttributeValues[':f'] = filter;
   }
 
   const command = new QueryCommand(params);
@@ -112,11 +155,17 @@ export async function listPromptOverrides(
 
   let newNextToken: string | null = null;
   if (response.LastEvaluatedKey) {
-      newNextToken = Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64');
+    newNextToken = Buffer.from(
+      JSON.stringify(response.LastEvaluatedKey)
+    ).toString('base64');
   }
 
   return {
-    items: (response.Items as PromptOverride[]) || [],
+    items:
+      (response.Items as PromptOverride[])?.map((item) => ({
+        ...item,
+        targetId: item.targetId.replace(/^PROMPT#/, ''),
+      })) || [],
     nextToken: newNextToken,
   };
 }

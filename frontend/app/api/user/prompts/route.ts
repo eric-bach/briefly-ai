@@ -3,7 +3,8 @@ import { getPromptOverride, savePromptOverride, listPromptOverrides, deletePromp
 import { resolvePromptOverride } from "@/lib/prompt-utils";
 
 // TODO: Implement proper server-side authentication with Amplify
-const getUserId = async (req: NextRequest) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getUserId = async (_req: NextRequest) => {
   return "test-user";
 };
 

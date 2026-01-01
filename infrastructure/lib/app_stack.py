@@ -52,6 +52,12 @@ class AppStack(Stack):
         # Grant DynamoDB access to Vercel User
         data_stack.resources.table.grant_read_write_data(vercel_user)
 
+        # Grant SES access to Vercel User
+        vercel_user.add_to_policy(PolicyStatement(
+            actions=["ses:SendEmail"],
+            resources=["*"]
+        ))
+
         CfnOutput(self, "VercelUserOutput",
             value=vercel_user.user_name,
             description="The IAM User Name for Vercel. Create Access Keys for this user in AWS Console."

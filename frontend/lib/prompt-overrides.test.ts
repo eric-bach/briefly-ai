@@ -1,28 +1,24 @@
-import { getPromptOverride, savePromptOverride, PromptOverride } from './db';
-
-// Mocking the db module functions
-const mockDb = {
-  getPromptOverride: async (userId: string, targetId: string) => {
-    if (userId === 'user1' && targetId === 'video1') {
-      return {
-        userId: 'user1',
-        targetId: 'video1',
-        prompt: 'Custom video prompt',
-        type: 'video',
-        updatedAt: new Date().toISOString()
-      } as PromptOverride;
-    }
-    return null;
-  },
-  savePromptOverride: async (override: PromptOverride) => {
-    console.log(`Saving override for ${override.targetId}`);
-  }
-};
+import { PromptOverride } from "./db";
 
 async function runTests() {
   console.log('Running tests for prompt overrides...');
   let passed = 0;
   let failed = 0;
+
+  const mockDb = {
+    getPromptOverride: async (userId: string, targetId: string): Promise<PromptOverride | null> => {
+      if (userId === 'user1' && targetId === 'video1') {
+        return {
+          userId: 'user1',
+          targetId: 'video1',
+          prompt: 'Custom video prompt',
+          type: 'video',
+          updatedAt: new Date().toISOString()
+        } as PromptOverride;
+      }
+      return null;
+    }
+  };
 
   // Test 1: Retrieve existing override
   const override = await mockDb.getPromptOverride('user1', 'video1');
@@ -44,9 +40,8 @@ async function runTests() {
     failed++;
   }
 
-  console.log(`
-Result: ${passed} passed, ${failed} failed.`);
+  console.log(`\nResult: ${passed} passed, ${failed} failed.`);
   if (failed > 0) process.exit(1);
 }
 
-runTests();
+runTests().catch(console.error);

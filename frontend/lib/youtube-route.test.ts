@@ -1,20 +1,9 @@
 
 import { GET } from "../app/api/youtube/videos/route";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 // Mock global fetch
 const originalFetch = global.fetch;
-
-function expect(actual: any, expected: any, message: string) {
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-        console.error(`FAIL: ${message}`);
-        console.error(`  Expected: ${JSON.stringify(expected)}`);
-        console.error(`  Actual:   ${JSON.stringify(actual)}`);
-        // throw new Error(message); 
-    } else {
-        console.log(`PASS: ${message}`);
-    }
-}
 
 async function runTests() {
     console.log('Running tests for YouTube API Route...');
@@ -23,7 +12,7 @@ async function runTests() {
 
     try {
         // Test 1: Get Video Details
-        global.fetch = async (url: RequestInfo | URL, init?: RequestInit) => {
+        global.fetch = async (url: RequestInfo | URL) => {
             const u = url.toString();
             if (u.includes('videos') && u.includes('id=test-video-id')) {
                 return {

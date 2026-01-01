@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Loader2, Search, Youtube } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -43,7 +43,7 @@ export function YouTubeViewer() {
   // Intersection Observer for infinite scroll
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  const fetchVideos = async (token?: string) => {
+  const fetchVideos = useCallback(async (token?: string) => {
     if (!channelId.trim()) return;
 
     setLoading(true);
@@ -80,12 +80,12 @@ export function YouTubeViewer() {
         return [...prev, ...uniqueNewVideos];
       });
       setNextPageToken(data.nextPageToken || null);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
     } finally {
       setLoading(false);
     }
-  };
+  }, [channelId]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -102,7 +102,7 @@ export function YouTubeViewer() {
     }
 
     return () => observer.disconnect();
-  }, [nextPageToken, loading, channelId]); // Keep dependencies minimal but correct
+  }, [nextPageToken, loading, fetchVideos]); // fetchVideos is now included
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
