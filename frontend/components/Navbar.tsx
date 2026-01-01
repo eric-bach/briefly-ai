@@ -50,16 +50,6 @@ export function Navbar() {
           >
             Summarize
           </Link>
-          <Link
-            href='/prompts'
-            className={`text-sm font-medium transition-colors ${
-              isActive('/prompts')
-                ? 'text-red-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Prompts
-          </Link>
         </div>
       </div>
       <div className='flex items-center gap-4'>
