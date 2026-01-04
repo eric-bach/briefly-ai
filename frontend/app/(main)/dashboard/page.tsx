@@ -9,6 +9,10 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Trash2,
+  Plus,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
@@ -42,6 +46,11 @@ interface VideoItem {
   snippet: VideoSnippet;
 }
 
+interface Subscription {
+  channelId: string;
+  channelTitle?: string;
+}
+
 export default function Dashboard() {
   const searchParams = useSearchParams();
   const [input, setInput] = useState('');
@@ -62,6 +71,9 @@ export default function Dashboard() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const observerTarget = useRef<HTMLDivElement>(null);
   const hasAutoStartedRef = useRef(false);
+
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [subLoading, setSubLoading] = useState(false);
 
   // Debounce ref
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -90,6 +102,16 @@ export default function Dashboard() {
       }
     };
     fetchSettings();
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/subscriptions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.subscriptions) setSubscriptions(data.subscriptions);
+      })
+      .catch((e) => console.error('Failed to fetch subscriptions', e));
   }, []);
 
   const fetchPromptOverride = async (videoId?: string, channelId?: string) => {
@@ -374,6 +396,58 @@ export default function Dashboard() {
     }
   };
 
+  const isSubscribedToCurrent = () => {
+    if (!videos.length) return false;
+    const channelId = videos[0].snippet.channelId;
+    return subscriptions.some((s) => s.channelId === channelId);
+  };
+
+  const handleToggleSubscription = async () => {
+    if (!videos.length) return;
+    const channelId = videos[0].snippet.channelId;
+    const channelTitle = videos[0].snippet.channelTitle;
+    const isSubscribed = isSubscribedToCurrent();
+
+    setSubLoading(true);
+    try {
+      if (isSubscribed) {
+        if (!confirm('Unsubscribe from this channel?')) return;
+        const res = await fetch(`/api/subscriptions?channelId=${channelId}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setSubscriptions((prev) =>
+            prev.filter((s) => s.channelId !== channelId)
+          );
+        }
+      } else {
+        // Subscribe
+        // We can pass the channelId directly now since we know it
+        // But our API expects 'input' which is parsed.
+        // Let's pass the channel ID as input.
+        const res = await fetch('/api/subscriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: channelId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSubscriptions((prev) => [
+            ...prev,
+            { channelId: data.channelId, channelTitle: data.channelTitle },
+          ]);
+        } else {
+          alert(data.error);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update subscription');
+    } finally {
+      setSubLoading(false);
+    }
+  };
+
   return (
     <div className='flex flex-col items-center justify-start min-h-screen bg-gray-50'>
       <Navbar />
@@ -518,9 +592,32 @@ export default function Dashboard() {
 
         {videos.length > 0 && (
           <div className='space-y-6'>
-            <h2 className='text-xl font-semibold text-gray-900'>
-              Latest from {videos[0].snippet.channelTitle}
-            </h2>
+            <div className='flex items-center justify-between'>
+              <h2 className='text-xl font-semibold text-gray-900'>
+                Latest from {videos[0].snippet.channelTitle}
+              </h2>
+              <button
+                onClick={handleToggleSubscription}
+                disabled={subLoading}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+                  isSubscribedToCurrent()
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {subLoading ? (
+                  <Loader2 className='w-4 h-4 animate-spin' />
+                ) : isSubscribedToCurrent() ? (
+                  <>
+                    <BellOff className='w-4 h-4' /> Unsubscribe
+                  </>
+                ) : (
+                  <>
+                    <Bell className='w-4 h-4' /> Subscribe for Summaries
+                  </>
+                )}
+              </button>
+            </div>
             <div className='grid gap-6 md:grid-cols-2'>
               {videos.map((video) => (
                 <button
