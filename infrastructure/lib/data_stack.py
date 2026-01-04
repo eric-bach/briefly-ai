@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 
 @dataclass
 class DataStackResources:
-    vpc: ec2.Vpc
     table: dynamodb.Table
 
 class DataStack(Stack):
@@ -26,20 +25,6 @@ class DataStack(Stack):
         # Get environment variables with fallbacks
         APP_NAME = app_name
         ENV_NAME = env_name
-
-        #
-        # AWS VPC
-        # 
-
-        # Create a VPC for our Fargate service
-        vpc = ec2.Vpc(
-            self, 
-            "VPC",
-            vpc_name=f"{APP_NAME}-AgentVpc-{ENV_NAME}",
-            max_azs=2,
-            nat_gateways=0,         # No NAT Gateway to save costs
-            #cidr="172.16.0.0/16",  # Use a different CIDR block to avoid conflicts
-        )
 
         #
         # Amazon Cognito
@@ -104,6 +89,20 @@ class DataStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
         )
 
+        # Add GSI for querying subscriptions by channel
+        table.add_global_secondary_index(
+            index_name="SubscriptionsByChannelIndex",
+            partition_key=dynamodb.Attribute(
+                name="targetId",
+                type=dynamodb.AttributeType.STRING
+            ),
+            sort_key=dynamodb.Attribute(
+                name="userId",
+                type=dynamodb.AttributeType.STRING
+            ),
+            projection_type=dynamodb.ProjectionType.ALL
+        )
+
         #
         # Outputs
         #
@@ -139,6 +138,5 @@ class DataStack(Stack):
         #
 
         self.resources = DataStackResources(
-            vpc=vpc,
             table=table,
         )

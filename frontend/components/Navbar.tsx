@@ -77,6 +77,12 @@ export function Navbar() {
                 <span>Manage Prompts</span>
               </DropdownMenuItem>
             </Link>
+            <Link href='/subscriptions'>
+              <DropdownMenuItem className='cursor-pointer'>
+                <Youtube className='mr-2 h-4 w-4' />
+                <span>My Subscriptions</span>
+              </DropdownMenuItem>
+            </Link>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleSignOut}

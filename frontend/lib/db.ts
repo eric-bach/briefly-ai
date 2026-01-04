@@ -168,3 +168,60 @@ export async function listPromptOverrides(
     nextToken: newNextToken,
   };
 }
+
+export interface Subscription {
+  userId: string;
+  channelId: string;
+  channelTitle?: string;
+  createdAt: string;
+}
+
+export async function saveSubscription(sub: Subscription): Promise<void> {
+  const command = new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      ...sub,
+      targetId: `SUBSCRIPTION#${sub.channelId}`,
+    },
+  });
+
+  await docClient.send(command);
+}
+
+export async function deleteSubscription(
+  userId: string,
+  channelId: string
+): Promise<void> {
+  const command = new DeleteCommand({
+    TableName: TABLE_NAME,
+    Key: {
+      userId,
+      targetId: `SUBSCRIPTION#${channelId}`,
+    },
+  });
+
+  await docClient.send(command);
+}
+
+export async function listSubscriptions(
+  userId: string
+): Promise<Subscription[]> {
+  const command = new QueryCommand({
+    TableName: TABLE_NAME,
+    KeyConditionExpression: 'userId = :uid and begins_with(targetId, :prefix)',
+    ExpressionAttributeValues: {
+      ':uid': userId,
+      ':prefix': 'SUBSCRIPTION#',
+    },
+  });
+
+  const response = await docClient.send(command);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((response.Items as any[]) || []).map((item) => ({
+    userId: item.userId,
+    channelId: item.targetId.replace('SUBSCRIPTION#', ''),
+    channelTitle: item.channelTitle,
+    createdAt: item.createdAt,
+  }));
+}
