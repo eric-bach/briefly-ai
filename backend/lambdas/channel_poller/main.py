@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 # Initialize clients
 dynamodb = boto3.resource('dynamodb')
-bedrock_agent_runtime = boto3.client('bedrock-agent-runtime')
+agentcore = boto3.client('bedrock-agentcore')
 ses = boto3.client('ses')
 
 from aws_lambda_powertools import Logger
@@ -194,14 +194,14 @@ def notify_subscribers(channel_id, video_url, video_title, table):
             logger.error(f"Failed to notify {user_id}: {e}")
 
 def invoke_agent(video_url, instructions):
-    logger.info(f"Invoking agent with video URL: {video_url}")
+    logger.info(f"⚙️ Invoking agent with video URL: {video_url}")
 
     payload = json.dumps({
         "videoUrl": video_url,
         "additionalInstructions": instructions
     })
     
-    response = bedrock_agent_runtime.invoke_agent_runtime(
+    response = agentcore.invoke_agent_runtime(
         agentRuntimeArn=AGENT_RUNTIME_ARN,
         payload=payload,
         runtimeSessionId=f"poller-{datetime.now().timestamp()}"
