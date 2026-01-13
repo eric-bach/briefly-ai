@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+import uuid
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -111,16 +112,19 @@ def process_channel(channel_id, table):
     logger.info(f"New video detected: {video_id} ({latest_video['title']})")
     
     # Notify Subscribers
-    notify_subscribers(channel_id, video_url, latest_video['title'], table)
-    
-    # Update Tracker
-    table.put_item(Item={
-        'userId': tracker_pk,
-        'targetId': tracker_sk,
-        'lastVideoId': video_id,
-        'lastUpdated': datetime.now(timezone.utc).isoformat(),
-        'channelId': channel_id
-    })
+    success = notify_subscribers(channel_id, video_url, latest_video['title'], table)
+
+    if success:
+        # Update Tracker
+        table.put_item(Item={
+            'userId': tracker_pk,
+            'targetId': tracker_sk,
+            'lastVideoId': video_id,
+            'lastUpdated': datetime.now(timezone.utc).isoformat(),
+            'channelId': channel_id
+        })
+    else:
+        logger.warning(f"⚠️ Failed to notify all subscribers for channel {channel_id}. Will retry next run.")
 
 def get_channel_feed(channel_id):
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
@@ -174,6 +178,8 @@ def notify_subscribers(channel_id, video_url, video_title, table):
     subscribers = response.get('Items', [])
     logger.info(f"Notifying {len(subscribers)} subscribers for video {video_url}")
     
+    all_success = True
+
     for sub in subscribers:
         user_id = sub['userId']
         user_profile = table.get_item(Key={'userId': user_id, 'targetId': 'PROFILE#data'}).get('Item')
@@ -192,6 +198,9 @@ def notify_subscribers(channel_id, video_url, video_title, table):
             send_email(email, video_title, summary, video_url)
         except Exception as e:
             logger.error(f"Failed to notify {user_id}: {e}")
+            all_success = False
+
+    return all_success
 
 def invoke_agent(video_url, instructions):
     logger.info(f"⚙️ Invoking agent with video URL: {video_url}")
@@ -204,7 +213,7 @@ def invoke_agent(video_url, instructions):
     response = agentcore.invoke_agent_runtime(
         agentRuntimeArn=AGENT_RUNTIME_ARN,
         payload=payload,
-        runtimeSessionId=f"poller-{datetime.now().timestamp()}"
+        runtimeSessionId=str(uuid.uuid4())
     )
     
     logger.info(f"Agent response: {response}")
