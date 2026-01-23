@@ -209,11 +209,14 @@ def invoke_agent(video_url, instructions):
         "videoUrl": video_url,
         "additionalInstructions": instructions
     })
+
+    session_id = str(uuid.uuid4())
+    logger.info(f"Session ID: {session_id} ({len(session_id)})")
     
     response = agentcore.invoke_agent_runtime(
         agentRuntimeArn=AGENT_RUNTIME_ARN,
         payload=payload,
-        runtimeSessionId=str(uuid.uuid4())
+        runtimeSessionId=session_id
     )
     
     logger.info(f"Agent response: {response}")
