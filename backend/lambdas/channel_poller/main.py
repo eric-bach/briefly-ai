@@ -5,6 +5,7 @@ import uuid
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+import base64
 
 # Initialize clients
 dynamodb = boto3.resource('dynamodb')
@@ -26,12 +27,14 @@ if AGENT_RUNTIME_ARN is None:
 
 @logger.inject_lambda_context
 def handler(event, context):
-    logger.info("▶️ Starting Channel Poller")
+    logger.info("Starting Channel Poller")
     table = dynamodb.Table(TABLE_NAME)
     
     # Get all unique channels to poll
     # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
     
+    logger.info("Checking for channels to poll")
+
     response = table.scan(
         IndexName='SubscriptionsByChannelIndex',
         ProjectionExpression='targetId'
@@ -50,18 +53,19 @@ def handler(event, context):
     for item in items:
         # targetId is "SUBSCRIPTION#<channelId>"
         tid = item.get('targetId', '')
+        channel_title = item.get('channelTitle', '')
         if tid.startswith('SUBSCRIPTION#'):
             channel_ids.add(tid.replace('SUBSCRIPTION#', ''))
-            
+            logger.info(f"Found channel: {channel_title} ({tid})")    
     logger.info(f"Found {len(channel_ids)} unique channels to poll.")
     
     for channel_id in channel_ids:
-        process_channel(channel_id, table)
+        process_channel(channel_title, channel_id, table)
         
     return {"statusCode": 200, "body": "Polling complete"}
 
-def process_channel(channel_id, table):
-    logger.info(f"Getting latest video for channel: {channel_id}")
+def process_channel(channel_title, channel_id, table):
+    logger.info(f"Getting latest video for channel: {channel_title} ({channel_id})")
     
     # Fetch RSS Feed
     feed_xml = get_channel_feed(channel_id)
@@ -128,17 +132,22 @@ def process_channel(channel_id, table):
 
 def get_channel_feed(channel_id):
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+
+    logger.info(f"Fetching feed for channel: {url}")
+
     try:
         with urllib.request.urlopen(url) as response:
             xml_content = response.read()
             return xml_content
-    except Exception as e:
-        logger.error(f"Error fetching feed for {channel_id}: {e}")
+    except Exception as e:  
+        logger.error(f"Error fetching feed for {url}: {e}")
         return None
 
 def parse_feed(xml_content):
     if not xml_content:
         return None
+    
+    logger.info("Parsing feed")
     
     root = ET.fromstring(xml_content)
     ns = {'yt': 'http://www.youtube.com/xml/schemas/2015', 'media': 'http://search.yahoo.com/mrss/', 'atom': 'http://www.w3.org/2005/Atom'}
@@ -169,6 +178,8 @@ def parse_feed(xml_content):
     }
 
 def notify_subscribers(channel_id, video_url, video_title, table):
+    logger.info(f"Notifying subscribers for video {video_url}")
+    
     response = table.query(
         IndexName='SubscriptionsByChannelIndex',
         KeyConditionExpression='targetId = :tid',
@@ -176,7 +187,7 @@ def notify_subscribers(channel_id, video_url, video_title, table):
     )
     
     subscribers = response.get('Items', [])
-    logger.info(f"Notifying {len(subscribers)} subscribers for video {video_url}")
+    logger.info(f"Found {len(subscribers)} subscribers for channel {channel_id}")
     
     all_success = True
 
@@ -203,7 +214,7 @@ def notify_subscribers(channel_id, video_url, video_title, table):
     return all_success
 
 def invoke_agent(video_url, instructions):
-    logger.info(f"⚙️ Invoking agent with video URL: {video_url}")
+    logger.info(f"▶️ Summarizing video for notification: {video_url}")
 
     payload = json.dumps({
         "videoUrl": video_url,
@@ -212,6 +223,8 @@ def invoke_agent(video_url, instructions):
 
     session_id = str(uuid.uuid4())
     logger.info(f"Session ID: {session_id} ({len(session_id)})")
+    
+    logger.info(f"Invoking agent runtime with payload: {payload}")
     
     response = agentcore.invoke_agent_runtime(
         agentRuntimeArn=AGENT_RUNTIME_ARN,
@@ -222,10 +235,35 @@ def invoke_agent(video_url, instructions):
     logger.info(f"Agent response: {response}")
     
     summary = ""
-    for event in response.get('completion', []):
-        if 'chunk' in event:
-             summary += event['chunk']['bytes'].decode('utf-8')
+    
+    if 'completion' in response:
+        for event in response['completion']:
+            if 'chunk' in event:
+                summary += event['chunk']['bytes'].decode('utf-8')
+    elif 'response' in response:
+        # Handle raw StreamingBody (e.g. SSE)
+        stream = response['response']
+        for line in stream.iter_lines():
+            if line:
+                decoded_line = line.decode('utf-8')
+                if decoded_line.startswith('data: '):
+                    data_str = decoded_line[6:]
+                    try:
+                        data = json.loads(data_str)
+                        if 'chunk' in data and 'bytes' in data['chunk']:
+                            b_content = data['chunk']['bytes']
+                            if isinstance(b_content, str):
+                                # Try standard base64 decode typical for AWS bytes in JSON
+                                try:
+                                    summary += base64.b64decode(b_content).decode('utf-8')
+                                except:
+                                    # Fallback if just text
+                                    summary += b_content
+                    except Exception as e:
+                        logger.error(f"Error parsing SSE line: {e}")
              
+    logger.info(f"Summary: {summary}")
+    
     return summary
 
 def send_email(to_address, title, summary, video_url):
