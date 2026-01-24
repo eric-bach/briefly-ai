@@ -241,9 +241,9 @@ def invoke_agent(video_url, instructions):
             if 'chunk' in event:
                 summary += event['chunk']['bytes'].decode('utf-8')
     elif 'response' in response:
-        # Handle raw StreamingBody (e.g. SSE)
+        # Handle raw StreamingBody (e.g. SSE or raw text)
         stream = response['response']
-        for line in stream.iter_lines():
+        for line in stream.iter_lines(keepends=True):
             if line:
                 decoded_line = line.decode('utf-8')
                 if decoded_line.startswith('data: '):
@@ -261,6 +261,9 @@ def invoke_agent(video_url, instructions):
                                     summary += b_content
                     except Exception as e:
                         logger.error(f"Error parsing SSE line: {e}")
+                else:
+                    # Treat as raw text (e.g. if the agent is just streaming text directly)
+                    summary += decoded_line
              
     logger.info(f"Summary: {summary}")
     
