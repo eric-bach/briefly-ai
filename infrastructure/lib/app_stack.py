@@ -39,7 +39,7 @@ class AppStack(Stack):
         ))
 
         agent_runtime_artifact = AgentRuntimeArtifact.from_asset(
-            directory="../backend/cdk",
+            directory="../backend/agent",
             platform=Platform.LINUX_ARM64
         )
 
@@ -57,7 +57,7 @@ class AppStack(Stack):
             function_name=f"{APP_NAME}-channel-poller-{ENV_NAME}",
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="main.handler",
-            code=_lambda.Code.from_asset("../backend/lambdas/channel_poller"),
+            code=_lambda.Code.from_asset("../backend/lambda/channel_poller"),
             timeout=Duration.seconds(300), # 5 minutes
             environment={
                 "TABLE_NAME": data_stack.resources.table.table_name,
