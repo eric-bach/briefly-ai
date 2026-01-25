@@ -1,11 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  DeleteCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -43,9 +37,7 @@ export interface PaginatedPromptOverrides {
   nextToken: string | null;
 }
 
-export async function getUserProfile(
-  userId: string
-): Promise<UserProfile | null> {
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   const command = new GetCommand({
     TableName: TABLE_NAME,
     Key: {
@@ -70,10 +62,7 @@ export async function saveUserProfile(profile: UserProfile): Promise<void> {
   await docClient.send(command);
 }
 
-export async function getPromptOverride(
-  userId: string,
-  targetId: string
-): Promise<PromptOverride | null> {
+export async function getPromptOverride(userId: string, targetId: string): Promise<PromptOverride | null> {
   const command = new GetCommand({
     TableName: TABLE_NAME,
     Key: {
@@ -88,9 +77,7 @@ export async function getPromptOverride(
   return { ...item, targetId: item.targetId.replace(/^PROMPT#/, '') };
 }
 
-export async function savePromptOverride(
-  override: PromptOverride
-): Promise<void> {
+export async function savePromptOverride(override: PromptOverride): Promise<void> {
   const command = new PutCommand({
     TableName: TABLE_NAME,
     Item: {
@@ -102,10 +89,7 @@ export async function savePromptOverride(
   await docClient.send(command);
 }
 
-export async function deletePromptOverride(
-  userId: string,
-  targetId: string
-): Promise<void> {
+export async function deletePromptOverride(userId: string, targetId: string): Promise<void> {
   const command = new DeleteCommand({
     TableName: TABLE_NAME,
     Key: {
@@ -121,7 +105,7 @@ export async function listPromptOverrides(
   userId: string,
   limit: number = 20,
   nextToken?: string,
-  filter?: string
+  filter?: string,
 ): Promise<PaginatedPromptOverrides> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const params: any = {
@@ -136,9 +120,7 @@ export async function listPromptOverrides(
 
   if (nextToken) {
     try {
-      params.ExclusiveStartKey = JSON.parse(
-        Buffer.from(nextToken, 'base64').toString('utf-8')
-      );
+      params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'));
     } catch (e) {
       console.error('Invalid nextToken', e);
     }
@@ -154,9 +136,7 @@ export async function listPromptOverrides(
 
   let newNextToken: string | null = null;
   if (response.LastEvaluatedKey) {
-    newNextToken = Buffer.from(
-      JSON.stringify(response.LastEvaluatedKey)
-    ).toString('base64');
+    newNextToken = Buffer.from(JSON.stringify(response.LastEvaluatedKey)).toString('base64');
   }
 
   return {
@@ -173,6 +153,7 @@ export interface Subscription {
   userId: string;
   channelId: string;
   channelTitle?: string;
+  channelThumbnail?: string;
   createdAt: string;
 }
 
@@ -188,10 +169,7 @@ export async function saveSubscription(sub: Subscription): Promise<void> {
   await docClient.send(command);
 }
 
-export async function deleteSubscription(
-  userId: string,
-  channelId: string
-): Promise<void> {
+export async function deleteSubscription(userId: string, channelId: string): Promise<void> {
   const command = new DeleteCommand({
     TableName: TABLE_NAME,
     Key: {
@@ -203,9 +181,7 @@ export async function deleteSubscription(
   await docClient.send(command);
 }
 
-export async function listSubscriptions(
-  userId: string
-): Promise<Subscription[]> {
+export async function listSubscriptions(userId: string): Promise<Subscription[]> {
   const command = new QueryCommand({
     TableName: TABLE_NAME,
     KeyConditionExpression: 'userId = :uid and begins_with(targetId, :prefix)',
@@ -222,6 +198,7 @@ export async function listSubscriptions(
     userId: item.userId,
     channelId: item.targetId.replace('SUBSCRIPTION#', ''),
     channelTitle: item.channelTitle,
+    channelThumbnail: item.channelThumbnail,
     createdAt: item.createdAt,
   }));
 }

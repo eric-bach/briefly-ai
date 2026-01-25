@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server';
-import {
-  saveSubscription,
-  deleteSubscription,
-  listSubscriptions,
-  getUserProfile,
-} from '@/lib/db';
+import { saveSubscription, deleteSubscription, listSubscriptions, getUserProfile } from '@/lib/db';
 import { parseInput } from '@/lib/youtube-utils';
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -13,12 +8,13 @@ async function fetchChannelDetails(channelId: string) {
   if (!YOUTUBE_API_KEY) return null;
   try {
     const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`,
     );
     const data = await res.json();
     if (data.items && data.items.length > 0) {
       return {
         title: data.items[0].snippet.title,
+        thumbnail: data.items[0].snippet.thumbnails?.medium?.url || data.items[0].snippet.thumbnails?.default?.url,
       };
     }
   } catch (e) {
@@ -35,13 +31,15 @@ async function resolveChannelId(videoUrl: string) {
   if (!YOUTUBE_API_KEY) return null;
   try {
     const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoUrl}&key=${YOUTUBE_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoUrl}&key=${YOUTUBE_API_KEY}`,
     );
     const data = await res.json();
     if (data.items && data.items.length > 0) {
       return {
         channelId: data.items[0].snippet.channelId,
         channelTitle: data.items[0].snippet.channelTitle,
+        channelThumbnail:
+          data.items[0].snippet.thumbnails?.medium?.url || data.items[0].snippet.thumbnails?.default?.url,
       };
     }
   } catch (e) {
@@ -62,10 +60,7 @@ export async function GET(req: Request) {
     const subscriptions = await listSubscriptions(userId);
     return NextResponse.json({ subscriptions });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to list subscriptions' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to list subscriptions' }, { status: 500 });
   }
 }
 
@@ -82,6 +77,7 @@ export async function POST(req: Request) {
     const parsed = parseInput(input);
     let channelId = '';
     let channelTitle = '';
+    let channelThumbnail = '';
 
     if (parsed.type === 'channel') {
       // If it starts with @, we need to resolve handle.
@@ -95,25 +91,20 @@ export async function POST(req: Request) {
       const output = parsed.value;
       if (output.startsWith('@')) {
         // Resolve handle
-        if (!YOUTUBE_API_KEY)
-          return NextResponse.json(
-            { error: 'API Key missing' },
-            { status: 500 }
-          );
+        if (!YOUTUBE_API_KEY) return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=${encodeURIComponent(
-            output
-          )}&key=${YOUTUBE_API_KEY}`
+            output,
+          )}&key=${YOUTUBE_API_KEY}`,
         );
         const data = await res.json();
         if (data.items?.length) {
           channelId = data.items[0].id;
           channelTitle = data.items[0].snippet.title;
+          channelThumbnail =
+            data.items[0].snippet.thumbnails?.medium?.url || data.items[0].snippet.thumbnails?.default?.url;
         } else {
-          return NextResponse.json(
-            { error: 'Channel not found' },
-            { status: 404 }
-          );
+          return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
         }
       } else {
         // Assume ID
@@ -121,12 +112,10 @@ export async function POST(req: Request) {
         const details = await fetchChannelDetails(channelId);
         if (details) {
           channelTitle = details.title;
+          channelThumbnail = details.thumbnail;
         } else {
           // Could be invalid ID
-          return NextResponse.json(
-            { error: 'Channel not found with that ID' },
-            { status: 404 }
-          );
+          return NextResponse.json({ error: 'Channel not found with that ID' }, { status: 404 });
         }
       }
     } else if (parsed.type === 'video') {
@@ -134,32 +123,46 @@ export async function POST(req: Request) {
       if (details) {
         channelId = details.channelId;
         channelTitle = details.channelTitle;
+        // The resolveChannelId using 'videos' endpoint gives video thumbnails, not channel thumbnails?
+        // Let's check YouTube API. 'videos' snippet has 'thumbnails' key but those are video thumbnails.
+        // The 'snippet' of a video resource does NOT contain channel thumbnail.
+        // So for video input, we might need a 2nd call to get channel details if we want channel logo.
+        // OR we just live without it for video inputs for now?
+        // User asked for "youtube channel image logo".
+        // If I use video thumbnail it would be weird.
+        // I need to fetch channel details using the channelId I got.
+        const channelDetails = await fetchChannelDetails(channelId);
+        if (channelDetails) {
+          channelThumbnail = channelDetails.thumbnail;
+          // Update title just in case
+          channelTitle = channelDetails.title;
+        }
       } else {
         return NextResponse.json({ error: 'Video not found' }, { status: 404 });
       }
     }
 
     if (!channelId) {
-      return NextResponse.json(
-        { error: 'Could not resolve channel ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Could not resolve channel ID' }, { status: 400 });
     }
 
     await saveSubscription({
       userId,
       channelId,
       channelTitle,
+      channelThumbnail,
       createdAt: new Date().toISOString(),
     });
 
-    return NextResponse.json({ success: true, channelId, channelTitle });
+    return NextResponse.json({
+      success: true,
+      channelId,
+      channelTitle,
+      channelThumbnail,
+    });
   } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: 'Failed to save subscription' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save subscription' }, { status: 500 });
   }
 }
 
@@ -170,18 +173,12 @@ export async function DELETE(req: Request) {
     const channelId = searchParams.get('channelId');
 
     if (!channelId) {
-      return NextResponse.json(
-        { error: 'Channel ID required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Channel ID required' }, { status: 400 });
     }
 
     await deleteSubscription(userId, channelId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to delete subscription' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete subscription' }, { status: 500 });
   }
 }

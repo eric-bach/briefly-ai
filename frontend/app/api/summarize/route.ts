@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import {
-  BedrockAgentCoreClient,
-  InvokeAgentRuntimeCommand,
-} from '@aws-sdk/client-bedrock-agentcore';
+import { BedrockAgentCoreClient, InvokeAgentRuntimeCommand } from '@aws-sdk/client-bedrock-agentcore';
 import { getUserProfile, UserProfile } from '@/lib/db';
-import {
-  SESClient,
-  SendEmailCommand,
-  SendEmailCommandOutput,
-} from '@aws-sdk/client-ses';
+import { SESClient, SendEmailCommand, SendEmailCommandOutput } from '@aws-sdk/client-ses';
 import { marked } from 'marked';
 import { parseInput } from '@/lib/youtube-utils';
 
@@ -32,9 +25,7 @@ function generateSessionId(length: number): string {
 
 // Type definitions for DI
 type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
-type SendEmailFn = (
-  command: SendEmailCommand
-) => Promise<SendEmailCommandOutput>;
+type SendEmailFn = (command: SendEmailCommand) => Promise<SendEmailCommandOutput>;
 
 async function fetchVideoTitle(videoId: string): Promise<string | null> {
   const apiKey = process.env.YOUTUBE_API_KEY;
@@ -61,21 +52,15 @@ export async function sendEmailNotification(
   // DI overrides
   _getUserProfile: GetUserProfileFn = getUserProfile,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _sendEmail: SendEmailFn = (cmd) => sesClient.send(cmd) as Promise<any>
+  _sendEmail: SendEmailFn = (cmd) => sesClient.send(cmd) as Promise<any>,
 ) {
   // Legacy topic check removed for SES
   // const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
 
   try {
     const profile = await _getUserProfile(userId);
-    if (
-      !profile ||
-      !profile.emailNotificationsEnabled ||
-      !profile.notificationEmail
-    ) {
-      console.log(
-        `Email notifications disabled or missing email for user ${userId}`
-      );
+    if (!profile || !profile.emailNotificationsEnabled || !profile.notificationEmail) {
+      console.log(`Email notifications disabled or missing email for user ${userId}`);
       return;
     }
 
@@ -134,7 +119,7 @@ export async function sendEmailNotification(
     `;
 
     const command = new SendEmailCommand({
-      Source: profile.notificationEmail,
+      Source: process.env.SES_SOURCE_EMAIL || profile.notificationEmail,
       Destination: {
         ToAddresses: [profile.notificationEmail],
       },
@@ -170,16 +155,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 });
     }
 
-    const agentRuntimeArn =
-      process.env.NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN;
+    const agentRuntimeArn = process.env.NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN;
 
     if (!agentRuntimeArn) {
       return NextResponse.json(
         {
-          error:
-            'Server configuration error: Missing NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN',
+          error: 'Server configuration error: Missing NEXT_PUBLIC_BEDROCK_AGENTCORE_RUNTIME_ARN',
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -188,19 +171,14 @@ export async function POST(req: Request) {
       runtimeSessionId: generateSessionId(33),
       agentRuntimeArn: agentRuntimeArn,
       qualifier: 'DEFAULT',
-      payload: new TextEncoder().encode(
-        JSON.stringify({ videoUrl, additionalInstructions })
-      ),
+      payload: new TextEncoder().encode(JSON.stringify({ videoUrl, additionalInstructions })),
     };
 
     const command = new InvokeAgentRuntimeCommand(input);
     const response = await client.send(command);
 
     if (!response.response) {
-      return NextResponse.json(
-        { error: 'Empty response from agent' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Empty response from agent' }, { status: 500 });
     }
 
     // Stream the response directly
@@ -253,7 +231,7 @@ export async function POST(req: Request) {
         error: 'Internal Server Error',
         details: (error as Error).message || String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -2,19 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
-import {
-  Loader2,
-  Trash2,
-  ExternalLink,
-  Youtube,
-  Bell,
-  Mail,
-} from 'lucide-react';
+import { Loader2, Trash2, ExternalLink, Youtube, Bell, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 interface Subscription {
   channelId: string;
   channelTitle?: string;
+  channelThumbnail?: string;
   createdAt?: string;
 }
 
@@ -60,12 +54,7 @@ export default function SubscriptionsPage() {
   };
 
   const handleUnsubscribe = async (channelId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to stop receiving summaries for this channel?'
-      )
-    )
-      return;
+    if (!confirm('Are you sure you want to stop receiving summaries for this channel?')) return;
 
     // Optimistic update
     const previous = subscriptions;
@@ -92,9 +81,7 @@ export default function SubscriptionsPage() {
       <div className='flex-1 w-full max-w-4xl mx-auto pt-32 p-8 space-y-8'>
         <div className='space-y-2'>
           <h1 className='text-3xl font-bold text-gray-900'>Subscriptions</h1>
-          <p className='text-gray-600'>
-            Manage your channel subscriptions for automated video summaries.
-          </p>
+          <p className='text-gray-600'>Manage your channel subscriptions for automated video summaries.</p>
         </div>
 
         {!emailEnabled && !loading && (
@@ -103,12 +90,9 @@ export default function SubscriptionsPage() {
             <div>
               <h4 className='font-semibold'>Email Notifications Disabled</h4>
               <p className='text-sm mt-1'>
-                Your global email notifications are currently turned off. You
-                won't receive summaries even for subscribed channels.
-                <Link
-                  href='/profile'
-                  className='underline font-medium ml-1 hover:text-yellow-900'
-                >
+                Your global email notifications are currently turned off. You won't receive summaries even for
+                subscribed channels.
+                <Link href='/profile' className='underline font-medium ml-1 hover:text-yellow-900'>
                   Enable in Settings
                 </Link>
               </p>
@@ -125,10 +109,7 @@ export default function SubscriptionsPage() {
                 {subscriptions.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <Link
-              href='/dashboard'
-              className='text-sm text-red-600 hover:text-red-700 font-medium hover:underline'
-            >
+            <Link href='/dashboard' className='text-sm text-red-600 hover:text-red-700 font-medium hover:underline'>
               + Add New
             </Link>
           </div>
@@ -158,18 +139,21 @@ export default function SubscriptionsPage() {
                   className='p-4 flex items-center justify-between hover:bg-gray-50 transition-colors group'
                 >
                   <div className='flex items-center gap-4'>
-                    <div className='w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg'>
-                      {sub.channelTitle
-                        ? sub.channelTitle[0].toUpperCase()
-                        : 'C'}
-                    </div>
+                    {sub.channelThumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={sub.channelThumbnail}
+                        alt={sub.channelTitle || 'Channel'}
+                        className='w-10 h-10 rounded-full border border-gray-200'
+                      />
+                    ) : (
+                      <div className='w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg'>
+                        {sub.channelTitle ? sub.channelTitle[0].toUpperCase() : 'C'}
+                      </div>
+                    )}
                     <div>
-                      <h3 className='font-medium text-gray-900'>
-                        {sub.channelTitle || 'Unknown Channel'}
-                      </h3>
-                      <p className='text-xs text-gray-500 font-mono'>
-                        {sub.channelId}
-                      </p>
+                      <h3 className='font-medium text-gray-900'>{sub.channelTitle || 'Unknown Channel'}</h3>
+                      <p className='text-xs text-gray-500 font-mono'>{sub.channelId}</p>
                     </div>
                   </div>
                   <div className='flex items-center gap-2'>

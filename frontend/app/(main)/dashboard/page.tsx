@@ -2,18 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  Loader2,
-  Play,
-  Youtube,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Trash2,
-  Plus,
-  Bell,
-  BellOff,
-} from 'lucide-react';
+import { Loader2, Play, Youtube, ChevronDown, ChevronUp, Search, Trash2, Plus, Bell, BellOff } from 'lucide-react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -114,7 +103,7 @@ export default function Dashboard() {
       .catch((e) => console.error('Failed to fetch subscriptions', e));
   }, []);
 
-  const fetchPromptOverride = async (videoId?: string, channelId?: string) => {
+  const fetchPromptOverride = async (videoId?: string, channelId?: string): Promise<string | null> => {
     try {
       const params = new URLSearchParams();
       if (videoId) params.append('videoId', videoId);
@@ -127,16 +116,18 @@ export default function Dashboard() {
           setCustomPrompt(data.override.prompt);
           setOriginalOverride(data.override.prompt);
           setIsSkipped(false);
-          // TODO: Set override active state/badge (Phase 3)
+          return data.override.prompt;
         } else {
           setCustomPrompt('');
           setOriginalOverride(null);
           setIsSkipped(false);
+          return null;
         }
       }
     } catch (e) {
       console.error('Failed to fetch override', e);
     }
+    return null;
   };
 
   const resolveVideoDetails = async (videoId: string) => {
@@ -186,76 +177,71 @@ export default function Dashboard() {
     };
   }, [input]);
 
-  const fetchChannelVideos = useCallback(
-    async (channelId: string, token?: string) => {
-      if (!channelId) {
-        return;
+  const fetchChannelVideos = useCallback(async (channelId: string, token?: string) => {
+    if (!channelId) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    if (!token) {
+      setVideos([]);
+      setSummary(''); // Clear summary when fetching a new channel
+    }
+
+    try {
+      let url = `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}`;
+
+      if (token) {
+        url += `&pageToken=${token}`;
       }
 
-      setLoading(true);
-      setError('');
+      const response = await fetch(url);
+      const data = await response.json();
 
-      if (!token) {
-        setVideos([]);
-        setSummary(''); // Clear summary when fetching a new channel
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch videos');
       }
 
-      try {
-        let url = `/api/youtube/videos?channelId=${encodeURIComponent(
-          channelId
-        )}`;
+      const newVideos = data.items || [];
 
-        if (token) {
-          url += `&pageToken=${token}`;
-        }
+      setVideos((prev) => {
+        if (!token) return newVideos;
 
-        const response = await fetch(url);
-        const data = await response.json();
+        const existingIds = new Set(prev.map((v) => v.id.videoId));
+        const uniqueNewVideos = newVideos.filter((v: VideoItem) => !existingIds.has(v.id.videoId));
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to fetch videos');
-        }
+        return [...prev, ...uniqueNewVideos];
+      });
 
-        const newVideos = data.items || [];
-
-        setVideos((prev) => {
-          if (!token) return newVideos;
-
-          const existingIds = new Set(prev.map((v) => v.id.videoId));
-          const uniqueNewVideos = newVideos.filter(
-            (v: VideoItem) => !existingIds.has(v.id.videoId)
-          );
-
-          return [...prev, ...uniqueNewVideos];
-        });
-
-        setNextPageToken(data.nextPageToken || null);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setLoading(false);
+      // If this is the initial fetch (no token), update current channel ID and fetch override
+      if (!token && newVideos.length > 0) {
+        const resolvedChannelId = newVideos[0].snippet.channelId;
+        setCurrentChannelId(resolvedChannelId);
+        fetchPromptOverride(undefined, resolvedChannelId);
       }
-    },
-    []
-  );
+
+      setNextPageToken(data.nextPageToken || null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          nextPageToken &&
-          !loading &&
-          mode === 'channel'
-        ) {
+        if (entries[0].isIntersecting && nextPageToken && !loading && mode === 'channel') {
           const parsed = parseInput(input);
 
           fetchChannelVideos(parsed.value, nextPageToken);
         }
       },
 
-      { threshold: 1.0 }
+      { threshold: 1.0 },
     );
 
     if (observerTarget.current) {
@@ -319,7 +305,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     },
-    [originalOverride]
+    [originalOverride],
   );
 
   // Handle URL query parameter for auto-starting
@@ -327,16 +313,22 @@ export default function Dashboard() {
     const videoUrlParam = searchParams.get('videoUrl');
 
     if (videoUrlParam && !hasAutoStartedRef.current) {
-      const parsed = parseInput(videoUrlParam);
-      setInput(videoUrlParam);
-      setMode(parsed.type);
-      hasAutoStartedRef.current = true;
+      const performAutoStart = async () => {
+        const parsed = parseInput(videoUrlParam);
+        setInput(videoUrlParam);
+        setMode(parsed.type);
+        hasAutoStartedRef.current = true;
 
-      if (parsed.type === 'video') {
-        generateSummary(videoUrlParam, '');
-      } else {
-        fetchChannelVideos(parsed.value);
-      }
+        if (parsed.type === 'video') {
+          const videoId = parsed.value;
+          const channelId = await resolveVideoDetails(videoId);
+          const prompt = await fetchPromptOverride(videoId, channelId || undefined);
+          generateSummary(videoUrlParam, prompt || '');
+        } else {
+          fetchChannelVideos(parsed.value);
+        }
+      };
+      performAutoStart();
     }
   }, [searchParams, generateSummary, fetchChannelVideos]);
 
@@ -358,9 +350,15 @@ export default function Dashboard() {
 
   const handleVideoSelect = async (videoId: string) => {
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const video = videos.find((v) => v.id.videoId === videoId);
+    const channelId = video?.snippet.channelId || currentChannelId;
+
+    // Fetch override before starting summary
+    const prompt = await fetchPromptOverride(videoId, channelId || undefined);
+
     setInput(videoUrl);
     setMode('video');
-    await generateSummary(videoUrl, customPrompt);
+    await generateSummary(videoUrl, prompt || '');
   };
 
   const handleSkipToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -416,9 +414,7 @@ export default function Dashboard() {
           method: 'DELETE',
         });
         if (res.ok) {
-          setSubscriptions((prev) =>
-            prev.filter((s) => s.channelId !== channelId)
-          );
+          setSubscriptions((prev) => prev.filter((s) => s.channelId !== channelId));
         }
       } else {
         // Subscribe
@@ -432,10 +428,7 @@ export default function Dashboard() {
         });
         const data = await res.json();
         if (res.ok) {
-          setSubscriptions((prev) => [
-            ...prev,
-            { channelId: data.channelId, channelTitle: data.channelTitle },
-          ]);
+          setSubscriptions((prev) => [...prev, { channelId: data.channelId, channelTitle: data.channelTitle }]);
         } else {
           alert(data.error);
         }
@@ -458,13 +451,10 @@ export default function Dashboard() {
             <div className='p-3 bg-red-100 rounded-full'>
               <Youtube className='w-8 h-8 text-red-600' />
             </div>
-            <h1 className='text-4xl font-bold tracking-tight text-gray-900'>
-              Briefly AI
-            </h1>
+            <h1 className='text-4xl font-bold tracking-tight text-gray-900'>Briefly AI</h1>
           </div>
           <p className='text-lg text-gray-600'>
-            Paste a YouTube link or Channel name to get an instant AI-powered
-            summary
+            Paste a YouTube link or Channel name to get an instant AI-powered summary
           </p>
         </div>
 
@@ -491,21 +481,14 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    {mode === 'video' ? (
-                      <Play className='w-5 h-5 fill-current' />
-                    ) : (
-                      <Search className='w-5 h-5' />
-                    )}
+                    {mode === 'video' ? <Play className='w-5 h-5 fill-current' /> : <Search className='w-5 h-5' />}
                     {mode === 'video' ? 'Summarize' : 'Fetch'}
                   </>
                 )}
               </button>
             </div>
             <div className='flex justify-start'>
-              <EmailStatusIndicator
-                enabled={emailEnabled}
-                email={notificationEmail}
-              />
+              <EmailStatusIndicator enabled={emailEnabled} email={notificationEmail} />
             </div>
           </form>
 
@@ -516,11 +499,7 @@ export default function Dashboard() {
                 onClick={() => setIsPromptOpen(!isPromptOpen)}
                 className='flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors'
               >
-                {isPromptOpen ? (
-                  <ChevronUp className='w-4 h-4' />
-                ) : (
-                  <ChevronDown className='w-4 h-4' />
-                )}
+                {isPromptOpen ? <ChevronUp className='w-4 h-4' /> : <ChevronDown className='w-4 h-4' />}
                 Additional Instructions
                 {originalOverride && !isSkipped && (
                   <span className='px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold'>
@@ -557,11 +536,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {error && (
-          <div className='p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>
-            {error}
-          </div>
-        )}
+        {error && <div className='p-4 bg-red-50 border border-red-200 rounded-lg text-red-700'>{error}</div>}
 
         {loading && !summary && videos.length === 0 && (
           <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-4'>
@@ -580,9 +555,7 @@ export default function Dashboard() {
 
         {summary && (
           <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 prose prose-gray max-w-none'>
-            <h3 className='text-xl font-semibold mb-4 text-gray-900'>
-              Summary
-            </h3>
+            <h3 className='text-xl font-semibold mb-4 text-gray-900'>Summary</h3>
             <div className='prose prose-red max-w-none'>
               <ReactMarkdown>{summary}</ReactMarkdown>
               <div ref={messagesEndRef} />
@@ -593,9 +566,7 @@ export default function Dashboard() {
         {videos.length > 0 && (
           <div className='space-y-6'>
             <div className='flex items-center justify-between'>
-              <h2 className='text-xl font-semibold text-gray-900'>
-                Latest from {videos[0].snippet.channelTitle}
-              </h2>
+              <h2 className='text-xl font-semibold text-gray-900'>Latest from {videos[0].snippet.channelTitle}</h2>
               <button
                 onClick={handleToggleSubscription}
                 disabled={subLoading}
@@ -637,9 +608,7 @@ export default function Dashboard() {
                     <h3 className='font-semibold line-clamp-2 leading-tight group-hover:text-red-600 transition-colors'>
                       {video.snippet.title}
                     </h3>
-                    <p className='text-xs text-gray-500'>
-                      {new Date(video.snippet.publishedAt).toLocaleDateString()}
-                    </p>
+                    <p className='text-xs text-gray-500'>{new Date(video.snippet.publishedAt).toLocaleDateString()}</p>
                   </div>
                 </button>
               ))}
@@ -660,16 +629,11 @@ export default function Dashboard() {
           <div className='fixed bottom-6 right-6 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-80 animate-in slide-in-from-bottom-5 duration-300 z-50'>
             <div className='flex justify-between items-start mb-2'>
               <h4 className='font-semibold text-gray-900'>Save this prompt?</h4>
-              <button
-                onClick={() => setShowSaveToast(false)}
-                className='text-gray-400 hover:text-gray-500'
-              >
+              <button onClick={() => setShowSaveToast(false)} className='text-gray-400 hover:text-gray-500'>
                 ✕
               </button>
             </div>
-            <p className='text-sm text-gray-600 mb-3'>
-              You can save this prompt for future videos.
-            </p>
+            <p className='text-sm text-gray-600 mb-3'>You can save this prompt for future videos.</p>
             <div className='flex flex-col gap-2'>
               {mode === 'video' && (
                 <button
