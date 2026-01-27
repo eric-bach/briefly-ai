@@ -11,6 +11,7 @@ import base64
 dynamodb = boto3.resource('dynamodb')
 agentcore = boto3.client('bedrock-agentcore')
 ses = boto3.client('ses')
+from markdown_utils import convert_markdown_to_html
 
 from aws_lambda_powertools import Logger
 logger = Logger()
@@ -250,31 +251,32 @@ def invoke_agent(video_url, instructions):
                     decoded_line = line.decode('utf-8')
                     logger.info(f"Stream line: {repr(decoded_line)}") # Log the raw line with repr to see invisible chars
                     
-                    if decoded_line.startswith('data: '):
-                        data_str = decoded_line[6:]
-                        try:
-                            data = json.loads(data_str)
-                            logger.info(f"Parsed data chunk: {data}")
-                            if 'chunk' in data and 'bytes' in data['chunk']:
-                                b_content = data['chunk']['bytes']
-                                if isinstance(b_content, str):
-                                    # Try standard base64 decode typical for AWS bytes in JSON
-                                    try:
-                                        decoded_chunk = base64.b64decode(b_content).decode('utf-8')
-                                        logger.info(f"Decoded chunk: {repr(decoded_chunk)}")
-                                        summary += decoded_chunk
-                                    except Exception as e:
-                                        logger.error(f"Base64 decode failed, using raw: {e}")
-                                        summary += b_content
-                                else:
-                                    # If it's already bytes (unlikely in this JSON structure but possible in some SDKs)
-                                    summary += b_content.decode('utf-8')
-                        except Exception as e:
-                            logger.error(f"Error parsing SSE line json: {e}")
-                    else:
-                        # Treat as raw text (e.g. if the agent is just streaming text directly)
-                        logger.info(f"Non-SSE line: {repr(decoded_line)}")
-                        summary += decoded_line
+                    # if decoded_line.startswith('data: '):
+                    #     data_str = decoded_line[6:]
+                    #     try:
+                    #         data = json.loads(data_str)
+                    #         logger.info(f"Parsed data chunk: {data}")
+                    #         if 'chunk' in data and 'bytes' in data['chunk']:
+                    #             b_content = data['chunk']['bytes']
+                    #             if isinstance(b_content, str):
+                    #                 # Try standard base64 decode typical for AWS bytes in JSON
+                    #                 try:
+                    #                     decoded_chunk = base64.b64decode(b_content).decode('utf-8')
+                    #                     logger.info(f"Decoded chunk: {repr(decoded_chunk)}")
+                    #                     summary += decoded_chunk
+                    #                 except Exception as e:
+                    #                     logger.error(f"Base64 decode failed, using raw: {e}")
+                    #                     summary += b_content
+                    #             else:
+                    #                 # If it's already bytes (unlikely in this JSON structure but possible in some SDKs)
+                    #                 summary += b_content.decode('utf-8')
+                    #     except Exception as e:
+                    #         logger.error(f"Error parsing SSE line json: {e}")
+                    # else:
+                    # Treat as raw text (e.g. if the agent is just streaming text directly)
+                    #logger.info(f"Non-SSE line: {repr(decoded_line)}")
+                    
+                    summary += decoded_line
         except Exception as e:
             logger.error(f"Error iterating stream: {e}")
              
@@ -287,9 +289,12 @@ def send_email(to_address, title, summary, video_url):
     logger.info(f"Sending video summary to {to_address}")
 
     subject = f"New Video Summary: {title}"
+    
+    html_summary = convert_markdown_to_html(summary)
+    
     body_html = f"""
     <h1>New Video: <a href="{video_url}">{title}</a></h1>
-    <p>{summary.replace(chr(10), '<br>')}</p>
+    {html_summary}
     <p><small>Sent by Briefly AI Poller</small></p>
     """
     

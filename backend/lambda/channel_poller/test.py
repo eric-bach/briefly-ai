@@ -148,23 +148,7 @@ class TestChannelPoller(unittest.TestCase):
     @patch('main.agentcore')
     @patch('main.ses')
     @patch('main.urllib.request.urlopen')
-    def test_poller_no_new_video(self, mock_urlopen, mock_ses, mock_bedrock, mock_dynamodb):
-         # Mock Feed content
-        rss_content = """
-        <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
-         <entry>
-          <yt:videoId>VIDEO123</yt:videoId>
-          <title>New Video Title</title>
-          <link rel="alternate" href="https://www.youtube.com/watch?v=VIDEO123"/>
-          <published>2025-01-01T12:00:00+00:00</published>
-         </entry>
-        </feed>
-        """
 
-    @patch('main.dynamodb')
-    @patch('main.agentcore')
-    @patch('main.ses')
-    @patch('main.urllib.request.urlopen')
     def test_poller_no_new_video(self, mock_urlopen, mock_ses, mock_bedrock, mock_dynamodb):
          # Mock Feed content
         rss_content = """
@@ -250,6 +234,67 @@ class TestChannelPoller(unittest.TestCase):
         mock_ses.send_email.assert_called_once()
         call_args = mock_ses.send_email.call_args[1]
         self.assertIn('Raw summary part 1 part 2', call_args['Message']['Body']['Text']['Data'])
+
+    @patch('main.dynamodb')
+    @patch('main.agentcore')
+    @patch('main.ses')
+    @patch('main.urllib.request.urlopen')
+    def test_email_markdown_formatting(self, mock_urlopen, mock_ses, mock_bedrock, mock_dynamodb):
+        # Mock Feed content
+        now = datetime.now(timezone.utc)
+        rss_content = f"""
+        <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+         <entry>
+          <yt:videoId>VIDEO_MD</yt:videoId>
+          <title>Markdown Video</title>
+          <link rel="alternate" href="https://www.youtube.com/watch?v=VIDEO_MD"/>
+          <published>{now.isoformat()}</published>
+         </entry>
+        </feed>
+        """
+        mock_response = MagicMock()
+        mock_response.read.return_value = rss_content.encode('utf-8')
+        mock_response.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_response
+        
+        # Mock DynamoDB
+        mock_table = MagicMock()
+        mock_dynamodb.Table.return_value = mock_table
+        mock_table.scan.return_value = {'Items': [{'targetId': 'SUBSCRIPTION#CHANNEL_MD'}]}
+        mock_table.get_item.return_value = {} # No tracker yet
+        
+        # Mock Subscribers
+        mock_table.query.return_value = {
+            'Items': [{'userId': 'user1', 'targetId': 'SUBSCRIPTION#CHANNEL_MD'}]
+        }
+        
+        # Mock User Profile
+        def get_item_side_effect(Key):
+            if Key.get('targetId') == 'PROFILE#data':
+                return {'Item': {'emailNotificationsEnabled': True, 'notificationEmail': 'test@example.com'}}
+            return {}
+        mock_table.get_item.side_effect = get_item_side_effect
+        
+        # Mock Bedrock Response with Markdown
+        markdown_summary = b"### Key Takeaways\n\n- Point A\n- Point B\n\n**Conclusion**"
+        mock_bedrock.invoke_agent_runtime.return_value = {
+            'completion': [{'chunk': {'bytes': markdown_summary}}]
+        }
+        
+        # Run Handler
+        handler({}, {})
+        
+        # Assertions
+        mock_ses.send_email.assert_called_once()
+        call_args = mock_ses.send_email.call_args[1]
+        html_body = call_args['Message']['Body']['Html']['Data']
+        
+        # Check for HTML tags
+        self.assertIn('<h3>Key Takeaways</h3>', html_body)
+        self.assertIn('<ul>', html_body)
+        self.assertIn('<li>Point A</li>', html_body)
+        self.assertIn('<li>Point B</li>', html_body)
+        self.assertIn('<strong>Conclusion</strong>', html_body)
 
 if __name__ == '__main__':
     unittest.main()
