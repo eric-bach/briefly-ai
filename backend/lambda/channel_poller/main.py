@@ -243,29 +243,43 @@ def invoke_agent(video_url, instructions):
     elif 'response' in response:
         # Handle raw StreamingBody (e.g. SSE or raw text)
         stream = response['response']
-        for line in stream.iter_lines(keepends=True):
-            if line:
-                decoded_line = line.decode('utf-8')
-                if decoded_line.startswith('data: '):
-                    data_str = decoded_line[6:]
-                    try:
-                        data = json.loads(data_str)
-                        if 'chunk' in data and 'bytes' in data['chunk']:
-                            b_content = data['chunk']['bytes']
-                            if isinstance(b_content, str):
-                                # Try standard base64 decode typical for AWS bytes in JSON
-                                try:
-                                    summary += base64.b64decode(b_content).decode('utf-8')
-                                except:
-                                    # Fallback if just text
-                                    summary += b_content
-                    except Exception as e:
-                        logger.error(f"Error parsing SSE line: {e}")
-                else:
-                    # Treat as raw text (e.g. if the agent is just streaming text directly)
-                    summary += decoded_line
+        logger.info("Starting to read stream from response['response']")
+        try:
+            for line in stream.iter_lines(keepends=True):
+                if line:
+                    decoded_line = line.decode('utf-8')
+                    logger.info(f"Stream line: {repr(decoded_line)}") # Log the raw line with repr to see invisible chars
+                    
+                    if decoded_line.startswith('data: '):
+                        data_str = decoded_line[6:]
+                        try:
+                            data = json.loads(data_str)
+                            logger.info(f"Parsed data chunk: {data}")
+                            if 'chunk' in data and 'bytes' in data['chunk']:
+                                b_content = data['chunk']['bytes']
+                                if isinstance(b_content, str):
+                                    # Try standard base64 decode typical for AWS bytes in JSON
+                                    try:
+                                        decoded_chunk = base64.b64decode(b_content).decode('utf-8')
+                                        logger.info(f"Decoded chunk: {repr(decoded_chunk)}")
+                                        summary += decoded_chunk
+                                    except Exception as e:
+                                        logger.error(f"Base64 decode failed, using raw: {e}")
+                                        summary += b_content
+                                else:
+                                    # If it's already bytes (unlikely in this JSON structure but possible in some SDKs)
+                                    summary += b_content.decode('utf-8')
+                        except Exception as e:
+                            logger.error(f"Error parsing SSE line json: {e}")
+                    else:
+                        # Treat as raw text (e.g. if the agent is just streaming text directly)
+                        logger.info(f"Non-SSE line: {repr(decoded_line)}")
+                        summary += decoded_line
+        except Exception as e:
+            logger.error(f"Error iterating stream: {e}")
              
-    logger.info(f"Summary: {summary}")
+    logger.info(f"Final Summary length: {len(summary)}")
+    logger.info(f"Summary content: {summary}")
     
     return summary
 
