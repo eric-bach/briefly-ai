@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+from botocore.config import Config
 import uuid
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -9,7 +10,7 @@ import base64
 
 # Initialize clients
 dynamodb = boto3.resource('dynamodb')
-agentcore = boto3.client('bedrock-agentcore')
+agentcore = boto3.client('bedrock-agentcore', config=Config(read_timeout=1200))
 ses = boto3.client('ses')
 from markdown_utils import convert_markdown_to_html
 
