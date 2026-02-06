@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import sys
 import os
+import json
 from datetime import datetime, timezone
 
 # Add directory to path to import main
@@ -458,6 +459,57 @@ class TestChannelPoller(unittest.TestCase):
         self.assertEqual(item['lastVideoId'], 'VIDEO_SUCCESS')
         self.assertIsNone(item['pendingVideoId'])
         self.assertEqual(item['retryCount'], 0)
+
+    @patch('main.dynamodb')
+    @patch('main.agentcore')
+    @patch('main.ses')
+    @patch('main.urllib.request.urlopen')
+    def test_custom_channel_prompt(self, mock_urlopen, mock_ses, mock_bedrock, mock_dynamodb):
+        # Mock Feed
+        rss_content = self._create_rss("VIDEO_CUSTOM", "Custom Prompt Video", datetime.now(timezone.utc).isoformat())
+        self._mock_feed(mock_urlopen, rss_content)
+        
+        # Mock DynamoDB
+        mock_table = MagicMock()
+        mock_dynamodb.Table.return_value = mock_table
+        mock_table.scan.return_value = {'Items': [{'targetId': 'SUBSCRIPTION#CHANNEL_CUSTOM'}]}
+        
+        # Mock Tracker
+        mock_table.get_item.return_value = {'Item': {'lastVideoId': 'OLD'}}
+        
+        # Mock Subscribers
+        mock_table.query.return_value = {
+            'Items': [{'userId': 'user1', 'targetId': 'SUBSCRIPTION#CHANNEL_CUSTOM'}]
+        }
+        
+        # Mock User Profile AND Custom Prompt
+        def get_item_side_effect(Key):
+            if Key.get('targetId') == 'PROFILE#data':
+                return {'Item': {'emailNotificationsEnabled': True, 'notificationEmail': 'test@example.com'}}
+            tracker_pk = "system"
+            tracker_sk = f"CHANNEL#CHANNEL_CUSTOM"
+            if Key.get('userId') == tracker_pk and Key.get('targetId') == tracker_sk:
+                 return {'Item': {'lastVideoId': 'OLD', 'pendingVideoId': None, 'retryCount': 0}}
+            
+            # MOCK CUSTOM PROMPT
+            if Key.get('userId') == 'user1' and Key.get('targetId') == 'PROMPT#CHANNEL_CUSTOM':
+                return {'Item': {'prompt': 'My Custom Prompt Instructions'}}
+                
+            return {}
+        mock_table.get_item.side_effect = get_item_side_effect
+
+        # Mock Bedrock
+        mock_bedrock.invoke_agent_runtime.return_value = {'completion': [{'chunk': {'bytes': b'Summary'}}]}
+
+        # Run Handler
+        handler({}, {})
+        
+        # Assertions
+        # Check if Bedrock was called with custom prompt
+        # We need to check the payload passed to invoke_agent_runtime
+        call_args = mock_bedrock.invoke_agent_runtime.call_args[1]
+        payload = json.loads(call_args['payload'])
+        self.assertEqual(payload['additionalInstructions'], 'My Custom Prompt Instructions')
 
     def _create_rss(self, video_id, title, published):
         return f"""
