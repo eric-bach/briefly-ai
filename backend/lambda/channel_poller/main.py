@@ -87,14 +87,42 @@ def process_channel(channel_title, channel_id, table):
     tracker_item = table.get_item(Key={'userId': tracker_pk, 'targetId': tracker_sk}).get('Item')
     
     last_video_id = tracker_item.get('lastVideoId') if tracker_item else None
+    pending_video_id = tracker_item.get('pendingVideoId') if tracker_item else None
+    retry_count = int(tracker_item.get('retryCount', 0)) if tracker_item else 0
     
     if last_video_id == video_id:
         logger.info(f"⚠️ Video {video_id} already processed for channel {channel_id}.")
         return
+        
+    # Determine if this is a retry or a new video
+    if video_id == pending_video_id:
+        logger.info(f"🔄 Retrying video {video_id} (Attempt {retry_count + 1})")
+        retry_count += 1
+    else:
+        logger.info(f"🆕 New video detected: {video_id} (Resetting retry count)")
+        retry_count = 0
+
+    # Max retries reached?
+    if retry_count > 3:
+        logger.error(f"❌ Max retries reached for video {video_id}. Skipping and notifying failure.")
+        notify_failure(channel_id, latest_video['title'], video_url, table)
+        
+        # Mark as processed so we don't retry forever, but clear pending state
+        table.put_item(Item={
+            'userId': tracker_pk,
+            'targetId': tracker_sk,
+            'lastVideoId': video_id, # Treat as stuck/done
+            'lastUpdated': datetime.now(timezone.utc).isoformat(),
+            'channelId': channel_id,
+            # Clear pending state
+            'pendingVideoId': None,
+            'retryCount': 0
+        })
+        return
 
     # Handle the case where this is the first run for this channel
     # If the video is older than 24 hours, skip it
-    if not last_video_id:
+    if not last_video_id and not pending_video_id:
         published_str = latest_video['published']
         try:
             # Handle Z or offset
@@ -115,22 +143,36 @@ def process_channel(channel_title, channel_id, table):
         except Exception as e:
             logger.error(f"🛑 Error parsing date {published_str}: {e}")
             
-    logger.info(f"New video detected: {video_id} ({latest_video['title']})")
+    logger.info(f"Processing video: {video_id} ({latest_video['title']})")
     
     # Notify Subscribers
     success = notify_subscribers(channel_id, video_url, latest_video['title'], table)
 
     if success:
-        # Update Tracker
+        # Update Tracker - Success!
         table.put_item(Item={
             'userId': tracker_pk,
             'targetId': tracker_sk,
             'lastVideoId': video_id,
             'lastUpdated': datetime.now(timezone.utc).isoformat(),
-            'channelId': channel_id
+            'channelId': channel_id,
+            # Clear pending state
+            'pendingVideoId': None,
+            'retryCount': 0
         })
     else:
-        logger.warning(f"⚠️ Failed to notify all subscribers for channel {channel_id}. Will retry next run.")
+        logger.warning(f"⚠️ Failed to notify all subscribers for channel {channel_id}. Scheduling retry.")
+        # Update Tracker - Schedule Retry
+        table.put_item(Item={
+            'userId': tracker_pk,
+            'targetId': tracker_sk,
+            'lastVideoId': last_video_id, # Keep last successful video
+            'lastUpdated': datetime.now(timezone.utc).isoformat(),
+            'channelId': channel_id,
+            # Set pending state
+            'pendingVideoId': video_id,
+            'retryCount': retry_count
+        })
 
 def get_channel_feed(channel_id):
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
@@ -202,9 +244,14 @@ def notify_subscribers(channel_id, video_url, video_title, table):
             continue
             
         email = user_profile['notificationEmail']
-        # TODO: Lookup the user's global prompt
-        # TODO: Future: save the prompt on the subscription to prevent lookup on each notification
-        custom_prompt = sub.get('customPrompt', '') 
+        
+        # Lookup the user's custom prompt for this channel
+        # PK = userId, SK = PROMPT#<channelId>
+        prompt_override = table.get_item(Key={'userId': user_id, 'targetId': f"PROMPT#{channel_id}"}).get('Item')
+        custom_prompt = prompt_override.get('prompt', '') if prompt_override else ''
+
+        if custom_prompt:
+             logger.info(f"Using custom prompt for user {user_id} on channel {channel_id}")
         
         try:
             summary = invoke_agent(video_url, custom_prompt)
@@ -310,3 +357,49 @@ def send_email(to_address, title, summary, video_url):
             }
         }
     )
+
+def notify_failure(channel_id, video_title, video_url, table):
+    logger.info(f"Notifying subscribers of failure for video {video_url}")
+    
+    response = table.query(
+        IndexName='SubscriptionsByChannelIndex',
+        KeyConditionExpression='targetId = :tid',
+        ExpressionAttributeValues={':tid': f"SUBSCRIPTION#{channel_id}"}
+    )
+    
+    subscribers = response.get('Items', [])
+    
+    for sub in subscribers:
+        user_id = sub['userId']
+        user_profile = table.get_item(Key={'userId': user_id, 'targetId': 'PROFILE#data'}).get('Item')
+        
+        if not user_profile or not user_profile.get('emailNotificationsEnabled') or not user_profile.get('notificationEmail'):
+            continue
+            
+        email = user_profile['notificationEmail']
+        
+        subject = f"Unable to Process Video: {video_title}"
+        
+        body_html = f"""
+        <h1>Video Processing Failed</h1>
+        <p>We detected a new video from a channel you are subscribed to, but we were unable to generate a summary for it after multiple attempts.</p>
+        <p><strong>Video:</strong> <a href="{video_url}">{video_title}</a></p>
+        <p>This usually happens when transcripts are not available for the video yet. We will skip this video and resume normal processing for the next upload.</p>
+        <p><small>Sent by Briefly AI</small></p>
+        """
+        
+        try:
+            ses.send_email(
+                Source=SES_SOURCE_EMAIL,
+                Destination={'ToAddresses': [email]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Html': {'Data': body_html},
+                        'Text': {'Data': f"Unable to process video: {video_title}. {video_url}"} 
+                    }
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to send failure notification to {email}: {e}")
+
