@@ -511,6 +511,53 @@ class TestChannelPoller(unittest.TestCase):
         payload = json.loads(call_args['payload'])
         self.assertEqual(payload['additionalInstructions'], 'My Custom Prompt Instructions')
 
+    @patch('main.dynamodb')
+    @patch('main.agentcore')
+    @patch('main.ses')
+    @patch('main.urllib.request.urlopen')
+    def test_poller_transcript_unavailable(self, mock_urlopen, mock_ses, mock_bedrock, mock_dynamodb):
+        # Mock Feed
+        rss_content = self._create_rss("VIDEO_NO_TRANSCRIPT", "No Transcript Video", datetime.now(timezone.utc).isoformat())
+        self._mock_feed(mock_urlopen, rss_content)
+        
+        # Mock DynamoDB
+        mock_table = MagicMock()
+        mock_dynamodb.Table.return_value = mock_table
+        mock_table.scan.return_value = {'Items': [{'targetId': 'SUBSCRIPTION#CHANNEL_NT'}]}
+        
+        # Mock Tracker
+        def get_item_side_effect(Key):
+            if Key.get('targetId') == 'PROFILE#data':
+                return {'Item': {'emailNotificationsEnabled': True, 'notificationEmail': 'test@example.com'}}
+            tracker_pk = "system"
+            tracker_sk = f"CHANNEL#CHANNEL_NT"
+            if Key.get('userId') == tracker_pk and Key.get('targetId') == tracker_sk:
+                 return {'Item': {'lastVideoId': 'OLD', 'pendingVideoId': None, 'retryCount': 0}}
+            return {}
+        mock_table.get_item.side_effect = get_item_side_effect
+        
+        # Mock Subscribers
+        mock_table.query.return_value = {
+            'Items': [{'userId': 'user1', 'targetId': 'SUBSCRIPTION#CHANNEL_NT'}]
+        }
+        
+        # Mock Bedrock - Returns Apology
+        apology_msg = "I apologize, but I wasn't able to retrieve the transcript for the YouTube video."
+        mock_bedrock.invoke_agent_runtime.return_value = {'completion': [{'chunk': {'bytes': apology_msg.encode('utf-8')}}]}
+
+        # Run Handler
+        handler({}, {})
+        
+        # Assertions
+        # Should NOT send email
+        mock_ses.send_email.assert_not_called()
+        
+        # Should UPDATE tracker with retry info
+        call_args = mock_table.put_item.call_args[1]
+        item = call_args['Item']
+        self.assertEqual(item['pendingVideoId'], 'VIDEO_NO_TRANSCRIPT')
+        self.assertEqual(item['retryCount'], 0)
+
     def _create_rss(self, video_id, title, published):
         return f"""
         <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">

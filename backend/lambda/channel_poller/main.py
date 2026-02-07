@@ -330,6 +330,18 @@ def invoke_agent(video_url, instructions):
              
     logger.info(f"Final Summary length: {len(summary)}")
     logger.info(f"Summary content: {summary}")
+
+    # Check for "apology" messages indicating transcript is unavailable
+    fail_phrases = [
+        "apologize, but I wasn't able to retrieve the transcript",
+        "apologize, but it seems that subtitles are disabled", 
+        "apologize, but I cannot access the transcript"
+    ]
+    
+    for phrase in fail_phrases:
+        if phrase in summary:
+            logger.warning(f"Detected failure phrase in summary: {phrase}")
+            raise ValueError("Transcript unavailable from agent")
     
     return summary
 
