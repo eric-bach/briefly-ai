@@ -445,7 +445,7 @@ export default function Dashboard() {
     <div className='flex flex-col items-center justify-start min-h-screen bg-gray-50'>
       <Navbar />
 
-      <div className='w-full max-w-3xl space-y-8 pt-32 p-8'>
+      <div className='w-full max-w-4xl space-y-8 pt-32 p-8'>
         <div className='text-center space-y-4'>
           <div className='flex items-center justify-center gap-4'>
             <div className='p-3 bg-red-100 rounded-full'>

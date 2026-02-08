@@ -109,7 +109,7 @@ export default function SubscriptionsPage() {
                 {subscriptions.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <Link href='/dashboard' className='text-sm text-red-600 hover:text-red-700 font-medium hover:underline'>
+            <Link href='/summarize' className='text-sm text-red-600 hover:text-red-700 font-medium hover:underline'>
               + Add New
             </Link>
           </div>
@@ -125,7 +125,7 @@ export default function SubscriptionsPage() {
               <Youtube className='w-12 h-12 mx-auto text-gray-300' />
               <p>You haven't subscribed to any channels yet.</p>
               <Link
-                href='/dashboard'
+                href='/summarize'
                 className='inline-block px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black transition-colors'
               >
                 Browse Channels
