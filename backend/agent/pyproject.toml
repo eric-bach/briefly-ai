@@ -8,4 +8,5 @@ dependencies = [
     "strands-agents-tools>=0.2.18",
     "youtube-transcript-api>=1.2.3",
     "python-dotenv>=1.2.1",
+    "aws-opentelemetry-distro>=0.15.0",
 ]
