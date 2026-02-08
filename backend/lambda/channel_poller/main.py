@@ -1,19 +1,21 @@
 import os
+import base64
 import json
 import boto3
 import uuid
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-import base64
+from botocore.config import Config
+from markdown_utils import convert_markdown_to_html
+from aws_lambda_powertools import Logger
 
 # Initialize clients
 dynamodb = boto3.resource('dynamodb')
-agentcore = boto3.client('bedrock-agentcore')
+agentcore = boto3.client('bedrock-agentcore', config=Config(read_timeout=1200))
 ses = boto3.client('ses')
 
-from aws_lambda_powertools import Logger
-logger = Logger()
+logger = Logger(service="channel_poller")
 
 TABLE_NAME = os.environ.get('TABLE_NAME')
 if TABLE_NAME is None:
@@ -27,14 +29,14 @@ if AGENT_RUNTIME_ARN is None:
 
 @logger.inject_lambda_context
 def handler(event, context):
-    logger.info("Starting Channel Poller")
+    logger.info("⚙️ Starting Channel Poller")
+
     table = dynamodb.Table(TABLE_NAME)
-    
-    # Get all unique channels to poll
-    # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
-    
+
     logger.info("Checking for channels to poll")
 
+    # Get all unique channels to poll
+    # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
     response = table.scan(
         IndexName='SubscriptionsByChannelIndex',
         ProjectionExpression='targetId'
@@ -57,6 +59,7 @@ def handler(event, context):
         if tid.startswith('SUBSCRIPTION#'):
             channel_ids.add(tid.replace('SUBSCRIPTION#', ''))
             logger.info(f"Found channel: {channel_title} ({tid})")    
+    
     logger.info(f"Found {len(channel_ids)} unique channels to poll.")
     
     for channel_id in channel_ids:
@@ -85,14 +88,42 @@ def process_channel(channel_title, channel_id, table):
     tracker_item = table.get_item(Key={'userId': tracker_pk, 'targetId': tracker_sk}).get('Item')
     
     last_video_id = tracker_item.get('lastVideoId') if tracker_item else None
+    pending_video_id = tracker_item.get('pendingVideoId') if tracker_item else None
+    retry_count = int(tracker_item.get('retryCount', 0)) if tracker_item else 0
     
     if last_video_id == video_id:
         logger.info(f"⚠️ Video {video_id} already processed for channel {channel_id}.")
         return
+        
+    # Determine if this is a retry or a new video
+    if video_id == pending_video_id:
+        logger.info(f"🔄 Retrying video {video_id} (Attempt {retry_count + 1})")
+        retry_count += 1
+    else:
+        logger.info(f"🆕 New video detected: {video_id} (Resetting retry count)")
+        retry_count = 0
+
+    # Max retries reached?
+    if retry_count > 3:
+        logger.error(f"❌ Max retries reached for video {video_id}. Skipping and notifying failure.")
+        notify_failure(channel_id, latest_video['title'], video_url, table)
+        
+        # Mark as processed so we don't retry forever, but clear pending state
+        table.put_item(Item={
+            'userId': tracker_pk,
+            'targetId': tracker_sk,
+            'lastVideoId': video_id, # Treat as stuck/done
+            'lastUpdated': datetime.now(timezone.utc).isoformat(),
+            'channelId': channel_id,
+            # Clear pending state
+            'pendingVideoId': None,
+            'retryCount': 0
+        })
+        return
 
     # Handle the case where this is the first run for this channel
     # If the video is older than 24 hours, skip it
-    if not last_video_id:
+    if not last_video_id and not pending_video_id:
         published_str = latest_video['published']
         try:
             # Handle Z or offset
@@ -113,22 +144,36 @@ def process_channel(channel_title, channel_id, table):
         except Exception as e:
             logger.error(f"🛑 Error parsing date {published_str}: {e}")
             
-    logger.info(f"New video detected: {video_id} ({latest_video['title']})")
+    logger.info(f"Processing video: {video_id} ({latest_video['title']})")
     
     # Notify Subscribers
-    success = notify_subscribers(channel_id, video_url, latest_video['title'], table)
+    success = notify_subscribers(channel_id, channel_title, video_url, latest_video['title'], table)
 
     if success:
-        # Update Tracker
+        # Update Tracker - Success!
         table.put_item(Item={
             'userId': tracker_pk,
             'targetId': tracker_sk,
             'lastVideoId': video_id,
             'lastUpdated': datetime.now(timezone.utc).isoformat(),
-            'channelId': channel_id
+            'channelId': channel_id,
+            # Clear pending state
+            'pendingVideoId': None,
+            'retryCount': 0
         })
     else:
-        logger.warning(f"⚠️ Failed to notify all subscribers for channel {channel_id}. Will retry next run.")
+        logger.warning(f"⚠️ Failed to notify all subscribers for channel {channel_id}. Scheduling retry.")
+        # Update Tracker - Schedule Retry
+        table.put_item(Item={
+            'userId': tracker_pk,
+            'targetId': tracker_sk,
+            'lastVideoId': last_video_id, # Keep last successful video
+            'lastUpdated': datetime.now(timezone.utc).isoformat(),
+            'channelId': channel_id,
+            # Set pending state
+            'pendingVideoId': video_id,
+            'retryCount': retry_count
+        })
 
 def get_channel_feed(channel_id):
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
@@ -177,8 +222,8 @@ def parse_feed(xml_content):
         'published': published
     }
 
-def notify_subscribers(channel_id, video_url, video_title, table):
-    logger.info(f"Notifying subscribers for video {video_url}")
+def notify_subscribers(channel_id, channel_title, video_url, video_title, table):
+    logger.info(f"Notifying subscribers for video {video_url} from {channel_title}")
     
     response = table.query(
         IndexName='SubscriptionsByChannelIndex',
@@ -200,12 +245,17 @@ def notify_subscribers(channel_id, video_url, video_title, table):
             continue
             
         email = user_profile['notificationEmail']
-        # TODO: Lookup the user's global prompt
-        # TODO: Future: save the prompt on the subscription to prevent lookup on each notification
-        custom_prompt = sub.get('customPrompt', '') 
+        
+        # Lookup the user's custom prompt for this channel
+        # PK = userId, SK = PROMPT#<channelId>
+        prompt_override = table.get_item(Key={'userId': user_id, 'targetId': f"PROMPT#{channel_id}"}).get('Item')
+        custom_prompt = prompt_override.get('prompt', '') if prompt_override else ''
+
+        if custom_prompt:
+             logger.info(f"Using custom prompt for user {user_id} on channel {channel_id}")
         
         try:
-            summary = invoke_agent(video_url, custom_prompt)
+            summary = invoke_agent(video_url, custom_prompt, channel_title=channel_title, video_title=video_title)
             send_email(email, video_title, summary, video_url)
         except Exception as e:
             logger.error(f"Failed to notify {user_id}: {e}")
@@ -213,7 +263,45 @@ def notify_subscribers(channel_id, video_url, video_title, table):
 
     return all_success
 
-def invoke_agent(video_url, instructions):
+def sanitize_session_id(channel_title, video_title):
+    """
+    Creates a sanitized session ID from channel and video titles.
+    Format: {channel_title}-{video_title}-{short_uuid}
+    Max length: 80 characters (to be safe for AWS limits)
+    Allowed chars: Alphanumeric, hyphen, underscore
+    """
+    import re
+    
+    # 1. Sanitize strings (replace non-alphanumeric with hyphen)
+    # Remove any character that isn't a-z, A-Z, 0-9, -, or _
+    # We allow - and _ but want to replace spaces with -
+    
+    def clean(s):
+        s = s.replace(" ", "-") # Spaces to hyphens
+        s = re.sub(r'[^a-zA-Z0-9\-_]', '', s) # Remove illegal chars
+        s = re.sub(r'-+', '-', s) # Collapse multiple hyphens
+        return s
+        
+    c_clean = clean(channel_title)
+    v_clean = clean(video_title)
+    
+    # 2. Add randomness (short UUID) to ensure uniqueness if titles match
+    short_uuid = str(uuid.uuid4())[:8]
+    
+    # 3. Construct and Truncate
+    # We have 80 chars total. UUID is 8 + 1 hyphen = 9.
+    # We have ~71 chars for titles. Split roughly 30/40 or 25/45.
+    # Let's cap channel at 20 and video at 40.
+    
+    c_trunc = c_clean[:20]
+    v_trunc = v_clean[:50] # Give more room to video title
+    
+    session_id = f"{c_trunc}-{v_trunc}-{short_uuid}"
+    
+    # Final safety check for length (though truncation handles it)
+    return session_id[:95] # Bedrock limit is around 100 often, but let's stay under valid range.
+
+def invoke_agent(video_url, instructions, channel_title="Briefly", video_title="Video"):
     logger.info(f"▶️ Summarizing video for notification: {video_url}")
 
     payload = json.dumps({
@@ -221,7 +309,7 @@ def invoke_agent(video_url, instructions):
         "additionalInstructions": instructions
     })
 
-    session_id = str(uuid.uuid4())
+    session_id = sanitize_session_id(channel_title, video_title)
     logger.info(f"Session ID: {session_id} ({len(session_id)})")
     
     logger.info(f"Invoking agent runtime with payload: {payload}")
@@ -250,36 +338,49 @@ def invoke_agent(video_url, instructions):
                     decoded_line = line.decode('utf-8')
                     logger.info(f"Stream line: {repr(decoded_line)}") # Log the raw line with repr to see invisible chars
                     
-                    if decoded_line.startswith('data: '):
-                        data_str = decoded_line[6:]
-                        try:
-                            data = json.loads(data_str)
-                            logger.info(f"Parsed data chunk: {data}")
-                            if 'chunk' in data and 'bytes' in data['chunk']:
-                                b_content = data['chunk']['bytes']
-                                if isinstance(b_content, str):
-                                    # Try standard base64 decode typical for AWS bytes in JSON
-                                    try:
-                                        decoded_chunk = base64.b64decode(b_content).decode('utf-8')
-                                        logger.info(f"Decoded chunk: {repr(decoded_chunk)}")
-                                        summary += decoded_chunk
-                                    except Exception as e:
-                                        logger.error(f"Base64 decode failed, using raw: {e}")
-                                        summary += b_content
-                                else:
-                                    # If it's already bytes (unlikely in this JSON structure but possible in some SDKs)
-                                    summary += b_content.decode('utf-8')
-                        except Exception as e:
-                            logger.error(f"Error parsing SSE line json: {e}")
-                    else:
-                        # Treat as raw text (e.g. if the agent is just streaming text directly)
-                        logger.info(f"Non-SSE line: {repr(decoded_line)}")
-                        summary += decoded_line
+                    # if decoded_line.startswith('data: '):
+                    #     data_str = decoded_line[6:]
+                    #     try:
+                    #         data = json.loads(data_str)
+                    #         logger.info(f"Parsed data chunk: {data}")
+                    #         if 'chunk' in data and 'bytes' in data['chunk']:
+                    #             b_content = data['chunk']['bytes']
+                    #             if isinstance(b_content, str):
+                    #                 # Try standard base64 decode typical for AWS bytes in JSON
+                    #                 try:
+                    #                     decoded_chunk = base64.b64decode(b_content).decode('utf-8')
+                    #                     logger.info(f"Decoded chunk: {repr(decoded_chunk)}")
+                    #                     summary += decoded_chunk
+                    #                 except Exception as e:
+                    #                     logger.error(f"Base64 decode failed, using raw: {e}")
+                    #                     summary += b_content
+                    #             else:
+                    #                 # If it's already bytes (unlikely in this JSON structure but possible in some SDKs)
+                    #                 summary += b_content.decode('utf-8')
+                    #     except Exception as e:
+                    #         logger.error(f"Error parsing SSE line json: {e}")
+                    # else:
+                    # Treat as raw text (e.g. if the agent is just streaming text directly)
+                    #logger.info(f"Non-SSE line: {repr(decoded_line)}")
+                    
+                    summary += decoded_line
         except Exception as e:
             logger.error(f"Error iterating stream: {e}")
              
     logger.info(f"Final Summary length: {len(summary)}")
     logger.info(f"Summary content: {summary}")
+
+    # Check for "apology" messages indicating transcript is unavailable
+    fail_phrases = [
+        "apologize, but I wasn't able to retrieve the transcript",
+        "apologize, but it seems that subtitles are disabled", 
+        "apologize, but I cannot access the transcript"
+    ]
+    
+    for phrase in fail_phrases:
+        if phrase in summary:
+            logger.warning(f"Detected failure phrase in summary: {phrase}")
+            raise ValueError("Transcript unavailable from agent")
     
     return summary
 
@@ -287,9 +388,12 @@ def send_email(to_address, title, summary, video_url):
     logger.info(f"Sending video summary to {to_address}")
 
     subject = f"New Video Summary: {title}"
+    
+    html_summary = convert_markdown_to_html(summary)
+    
     body_html = f"""
     <h1>New Video: <a href="{video_url}">{title}</a></h1>
-    <p>{summary.replace(chr(10), '<br>')}</p>
+    {html_summary}
     <p><small>Sent by Briefly AI Poller</small></p>
     """
     
@@ -304,3 +408,49 @@ def send_email(to_address, title, summary, video_url):
             }
         }
     )
+
+def notify_failure(channel_id, video_title, video_url, table):
+    logger.info(f"Notifying subscribers of failure for video {video_url}")
+    
+    response = table.query(
+        IndexName='SubscriptionsByChannelIndex',
+        KeyConditionExpression='targetId = :tid',
+        ExpressionAttributeValues={':tid': f"SUBSCRIPTION#{channel_id}"}
+    )
+    
+    subscribers = response.get('Items', [])
+    
+    for sub in subscribers:
+        user_id = sub['userId']
+        user_profile = table.get_item(Key={'userId': user_id, 'targetId': 'PROFILE#data'}).get('Item')
+        
+        if not user_profile or not user_profile.get('emailNotificationsEnabled') or not user_profile.get('notificationEmail'):
+            continue
+            
+        email = user_profile['notificationEmail']
+        
+        subject = f"Unable to Process Video: {video_title}"
+        
+        body_html = f"""
+        <h1>Video Processing Failed</h1>
+        <p>We detected a new video from a channel you are subscribed to, but we were unable to generate a summary for it after multiple attempts.</p>
+        <p><strong>Video:</strong> <a href="{video_url}">{video_title}</a></p>
+        <p>This usually happens when transcripts are not available for the video yet. We will skip this video and resume normal processing for the next upload.</p>
+        <p><small>Sent by Briefly AI</small></p>
+        """
+        
+        try:
+            ses.send_email(
+                Source=SES_SOURCE_EMAIL,
+                Destination={'ToAddresses': [email]},
+                Message={
+                    'Subject': {'Data': subject},
+                    'Body': {
+                        'Html': {'Data': body_html},
+                        'Text': {'Data': f"Unable to process video: {video_title}. {video_url}"} 
+                    }
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to send failure notification to {email}: {e}")
+

@@ -58,7 +58,7 @@ class AppStack(Stack):
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="main.handler",
             code=_lambda.Code.from_asset("../backend/lambda/channel_poller"),
-            timeout=Duration.seconds(300), # 5 minutes
+            timeout=Duration.seconds(600), # 10 minutes
             environment={
                 "TABLE_NAME": data_stack.resources.table.table_name,
                 "SES_SOURCE_EMAIL": os.environ.get("SES_SOURCE_EMAIL"),

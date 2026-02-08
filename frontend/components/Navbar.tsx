@@ -30,10 +30,7 @@ export function Navbar() {
   return (
     <nav className='w-full bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center fixed top-0 left-0 z-10'>
       <div className='flex items-center gap-8'>
-        <Link
-          href='/'
-          className='flex items-center gap-2 font-bold text-xl text-gray-900 group'
-        >
+        <Link href='/' className='flex items-center gap-2 font-bold text-xl text-gray-900 group'>
           <div className='p-1.5 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors'>
             <Youtube className='w-5 h-5 text-red-600' />
           </div>
@@ -41,11 +38,9 @@ export function Navbar() {
         </Link>
         <div className='flex items-center gap-6'>
           <Link
-            href='/dashboard'
+            href='/summarize'
             className={`text-sm font-medium transition-colors ${
-              isActive('/dashboard')
-                ? 'text-red-600'
-                : 'text-gray-600 hover:text-gray-900'
+              isActive('/summarize') ? 'text-red-600' : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             Summarize
@@ -84,10 +79,7 @@ export function Navbar() {
               </DropdownMenuItem>
             </Link>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleSignOut}
-              className='text-red-600 focus:text-red-600 cursor-pointer'
-            >
+            <DropdownMenuItem onClick={handleSignOut} className='text-red-600 focus:text-red-600 cursor-pointer'>
               <LogOut className='mr-2 h-4 w-4' />
               <span>Sign out</span>
             </DropdownMenuItem>
