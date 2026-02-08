@@ -1,21 +1,21 @@
 import os
+import base64
 import json
 import boto3
-from botocore.config import Config
 import uuid
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-import base64
+from botocore.config import Config
+from markdown_utils import convert_markdown_to_html
+from aws_lambda_powertools import Logger
 
 # Initialize clients
 dynamodb = boto3.resource('dynamodb')
 agentcore = boto3.client('bedrock-agentcore', config=Config(read_timeout=1200))
 ses = boto3.client('ses')
-from markdown_utils import convert_markdown_to_html
 
-from aws_lambda_powertools import Logger
-logger = Logger()
+logger = Logger(service="channel_poller")
 
 TABLE_NAME = os.environ.get('TABLE_NAME')
 if TABLE_NAME is None:
@@ -29,14 +29,14 @@ if AGENT_RUNTIME_ARN is None:
 
 @logger.inject_lambda_context
 def handler(event, context):
-    logger.info("Starting Channel Poller")
+    logger.info("⚙️ Starting Channel Poller")
+
     table = dynamodb.Table(TABLE_NAME)
-    
-    # Get all unique channels to poll
-    # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
-    
+
     logger.info("Checking for channels to poll")
 
+    # Get all unique channels to poll
+    # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
     response = table.scan(
         IndexName='SubscriptionsByChannelIndex',
         ProjectionExpression='targetId'
@@ -59,6 +59,7 @@ def handler(event, context):
         if tid.startswith('SUBSCRIPTION#'):
             channel_ids.add(tid.replace('SUBSCRIPTION#', ''))
             logger.info(f"Found channel: {channel_title} ({tid})")    
+    
     logger.info(f"Found {len(channel_ids)} unique channels to poll.")
     
     for channel_id in channel_ids:
@@ -146,7 +147,7 @@ def process_channel(channel_title, channel_id, table):
     logger.info(f"Processing video: {video_id} ({latest_video['title']})")
     
     # Notify Subscribers
-    success = notify_subscribers(channel_id, video_url, latest_video['title'], table)
+    success = notify_subscribers(channel_id, channel_title, video_url, latest_video['title'], table)
 
     if success:
         # Update Tracker - Success!
@@ -221,8 +222,8 @@ def parse_feed(xml_content):
         'published': published
     }
 
-def notify_subscribers(channel_id, video_url, video_title, table):
-    logger.info(f"Notifying subscribers for video {video_url}")
+def notify_subscribers(channel_id, channel_title, video_url, video_title, table):
+    logger.info(f"Notifying subscribers for video {video_url} from {channel_title}")
     
     response = table.query(
         IndexName='SubscriptionsByChannelIndex',
@@ -254,7 +255,7 @@ def notify_subscribers(channel_id, video_url, video_title, table):
              logger.info(f"Using custom prompt for user {user_id} on channel {channel_id}")
         
         try:
-            summary = invoke_agent(video_url, custom_prompt)
+            summary = invoke_agent(video_url, custom_prompt, channel_title=channel_title, video_title=video_title)
             send_email(email, video_title, summary, video_url)
         except Exception as e:
             logger.error(f"Failed to notify {user_id}: {e}")
@@ -262,7 +263,45 @@ def notify_subscribers(channel_id, video_url, video_title, table):
 
     return all_success
 
-def invoke_agent(video_url, instructions):
+def sanitize_session_id(channel_title, video_title):
+    """
+    Creates a sanitized session ID from channel and video titles.
+    Format: {channel_title}-{video_title}-{short_uuid}
+    Max length: 80 characters (to be safe for AWS limits)
+    Allowed chars: Alphanumeric, hyphen, underscore
+    """
+    import re
+    
+    # 1. Sanitize strings (replace non-alphanumeric with hyphen)
+    # Remove any character that isn't a-z, A-Z, 0-9, -, or _
+    # We allow - and _ but want to replace spaces with -
+    
+    def clean(s):
+        s = s.replace(" ", "-") # Spaces to hyphens
+        s = re.sub(r'[^a-zA-Z0-9\-_]', '', s) # Remove illegal chars
+        s = re.sub(r'-+', '-', s) # Collapse multiple hyphens
+        return s
+        
+    c_clean = clean(channel_title)
+    v_clean = clean(video_title)
+    
+    # 2. Add randomness (short UUID) to ensure uniqueness if titles match
+    short_uuid = str(uuid.uuid4())[:8]
+    
+    # 3. Construct and Truncate
+    # We have 80 chars total. UUID is 8 + 1 hyphen = 9.
+    # We have ~71 chars for titles. Split roughly 30/40 or 25/45.
+    # Let's cap channel at 20 and video at 40.
+    
+    c_trunc = c_clean[:20]
+    v_trunc = v_clean[:50] # Give more room to video title
+    
+    session_id = f"{c_trunc}-{v_trunc}-{short_uuid}"
+    
+    # Final safety check for length (though truncation handles it)
+    return session_id[:95] # Bedrock limit is around 100 often, but let's stay under valid range.
+
+def invoke_agent(video_url, instructions, channel_title="Briefly", video_title="Video"):
     logger.info(f"▶️ Summarizing video for notification: {video_url}")
 
     payload = json.dumps({
@@ -270,7 +309,7 @@ def invoke_agent(video_url, instructions):
         "additionalInstructions": instructions
     })
 
-    session_id = str(uuid.uuid4())
+    session_id = sanitize_session_id(channel_title, video_title)
     logger.info(f"Session ID: {session_id} ({len(session_id)})")
     
     logger.info(f"Invoking agent runtime with payload: {payload}")

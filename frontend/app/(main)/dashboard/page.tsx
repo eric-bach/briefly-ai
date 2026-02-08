@@ -460,7 +460,7 @@ export default function Dashboard() {
 
         <div className='bg-white rounded-xl shadow-lg p-6 border border-gray-100 space-y-4'>
           <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
-            <div className='flex gap-4 w-full'>
+            <div className='flex flex-col md:flex-row gap-4 w-full'>
               <input
                 type='text'
                 value={input}

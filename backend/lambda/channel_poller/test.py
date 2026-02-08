@@ -577,5 +577,26 @@ class TestChannelPoller(unittest.TestCase):
         mock_response.__enter__.return_value = mock_response
         mock_urlopen.return_value = mock_response
 
+    def test_sanitize_session_id(self):
+        from main import sanitize_session_id
+        
+        # Test 1: Standard inputs
+        sid = sanitize_session_id("My Channel", "My Video Title")
+        self.assertTrue(sid.startswith("My-Channel-My-Video-Title-"))
+        self.assertLessEqual(len(sid), 95)
+        
+        # Test 2: Special characters
+        sid = sanitize_session_id("Chan & Nel!", "Vid: eo @ Title?")
+        self.assertTrue(sid.startswith("Chan-Nel-Vid-eo-Title-"))
+        
+        # Test 3: Long titles (should truncate)
+        long_channel = "A" * 50
+        long_video = "B" * 100
+        sid = sanitize_session_id(long_channel, long_video)
+        # Channel truncated to 20, Video to 50. 
+        # Structure: C(20)-V(50)-UUID(approx 8)
+        self.assertTrue(sid.startswith("AAAAAAAAAAAAAAAAAAAA-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB-"))
+        self.assertLessEqual(len(sid), 95)
+
 if __name__ == '__main__':
     unittest.main()

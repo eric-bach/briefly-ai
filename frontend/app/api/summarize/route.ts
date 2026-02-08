@@ -27,7 +27,13 @@ function generateSessionId(length: number): string {
 type GetUserProfileFn = (userId: string) => Promise<UserProfile | null>;
 type SendEmailFn = (command: SendEmailCommand) => Promise<SendEmailCommandOutput>;
 
-async function fetchVideoTitle(videoId: string): Promise<string | null> {
+// Update return type to include channel title
+interface VideoDetails {
+  title: string;
+  channelTitle: string;
+}
+
+async function fetchVideoDetails(videoId: string): Promise<VideoDetails | null> {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) return null;
 
@@ -37,12 +43,46 @@ async function fetchVideoTitle(videoId: string): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     if (data.items && data.items.length > 0) {
-      return data.items[0].snippet.title;
+      const snippet = data.items[0].snippet;
+      return {
+        title: snippet.title,
+        channelTitle: snippet.channelTitle,
+      };
     }
   } catch (e) {
-    console.error('Failed to fetch video title', e);
+    console.error('Failed to fetch video details', e);
   }
   return null;
+}
+
+function sanitizeSessionId(channelTitle: string, videoTitle: string): string {
+  // 1. Sanitize strings (replace non-alphanumeric with hyphen)
+  const clean = (s: string) => {
+    return s
+      .replace(/ /g, '-')
+      .replace(/[^a-zA-Z0-9\-_]/g, '')
+      .replace(/-+/g, '-');
+  };
+
+  const cClean = clean(channelTitle);
+  const vClean = clean(videoTitle);
+
+  // 2. Add randomness (short UUID or random string)
+  const shortUuid = Math.random().toString(36).substring(2, 10);
+
+  // 3. Construct and Truncate
+  // Max length ~80-100.
+  const cTrunc = cClean.substring(0, 20);
+  const vTrunc = vClean.substring(0, 50);
+
+  let sessionId = `${cTrunc}-${vTrunc}-${shortUuid}`;
+
+  // Ensure we don't exceed length (e.g. 95)
+  if (sessionId.length > 95) {
+    sessionId = sessionId.substring(0, 95);
+  }
+
+  return sessionId;
 }
 
 export async function sendEmailNotification(
@@ -54,9 +94,6 @@ export async function sendEmailNotification(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _sendEmail: SendEmailFn = (cmd) => sesClient.send(cmd) as Promise<any>,
 ) {
-  // Legacy topic check removed for SES
-  // const topicArn = process.env.NOTIFICATION_TOPIC_ARN;
-
   try {
     const profile = await _getUserProfile(userId);
     if (!profile || !profile.emailNotificationsEnabled || !profile.notificationEmail) {
@@ -70,9 +107,9 @@ export async function sendEmailNotification(
     let title = videoUrl;
     const parsed = parseInput(videoUrl);
     if (parsed.type === 'video') {
-      const fetchedTitle = await fetchVideoTitle(parsed.value);
-      if (fetchedTitle) {
-        title = fetchedTitle;
+      const details = await fetchVideoDetails(parsed.value);
+      if (details) {
+        title = details.title;
       }
     }
 
@@ -166,9 +203,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Generate Descriptive Session ID
+    let sessionId = generateSessionId(33); // Fallback
+
+    const parsed = parseInput(videoUrl);
+    if (parsed.type === 'video') {
+      const details = await fetchVideoDetails(parsed.value);
+      if (details) {
+        sessionId = sanitizeSessionId(details.channelTitle, details.title);
+      }
+    }
+
     const client = new BedrockAgentCoreClient({ region: 'us-east-1' });
     const input = {
-      runtimeSessionId: generateSessionId(33),
+      runtimeSessionId: sessionId,
       agentRuntimeArn: agentRuntimeArn,
       qualifier: 'DEFAULT',
       payload: new TextEncoder().encode(JSON.stringify({ videoUrl, additionalInstructions })),
@@ -209,6 +257,9 @@ export async function POST(req: Request) {
         // Await email notification to ensure execution before process termination
         try {
           console.log('Sending email notification...');
+          // Note: using 'test-user' or the user from context if we had auth here.
+          // For now, retaining original logic with 'test-user' but note that sendEmailNotification
+          // might re-fetch title which is slightly inefficient but fine.
           await sendEmailNotification('test-user', videoUrl, fullSummary);
         } catch (e) {
           console.error('Error sending email notification:', e);
