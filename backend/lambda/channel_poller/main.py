@@ -39,30 +39,33 @@ def handler(event, context):
     # TODO Create a separate table for Subscriptions so we don't need to Scan the GSI and then perform a deduplication step
     response = table.scan(
         IndexName='SubscriptionsByChannelIndex',
-        ProjectionExpression='targetId'
+        ProjectionExpression='targetId, channelTitle'
     )
     items = response.get('Items', [])
     while 'LastEvaluatedKey' in response:
         response = table.scan(
             IndexName='SubscriptionsByChannelIndex',
-            ProjectionExpression='targetId',
+            ProjectionExpression='targetId, channelTitle',
             ExclusiveStartKey=response['LastEvaluatedKey']
         )
         items.extend(response.get('Items', []))
         
-    # Deduplicate channels
-    channel_ids = set()
+    # Deduplicate channels and store channel_id -> channel_title mapping
+    channels = {}  # channel_id -> channel_title
     for item in items:
         # targetId is "SUBSCRIPTION#<channelId>"
         tid = item.get('targetId', '')
         channel_title = item.get('channelTitle', '')
         if tid.startswith('SUBSCRIPTION#'):
-            channel_ids.add(tid.replace('SUBSCRIPTION#', ''))
+            channel_id = tid.replace('SUBSCRIPTION#', '')
+            # Keep first non-empty title we find for each channel
+            if channel_id not in channels or (not channels[channel_id] and channel_title):
+                channels[channel_id] = channel_title
             logger.info(f"Found channel: {channel_title} ({tid})")    
     
-    logger.info(f"Found {len(channel_ids)} unique channels to poll.")
+    logger.info(f"Found {len(channels)} unique channels to poll.")
     
-    for channel_id in channel_ids:
+    for channel_id, channel_title in channels.items():
         process_channel(channel_title, channel_id, table)
         
     return {"statusCode": 200, "body": "Polling complete"}
@@ -266,43 +269,58 @@ def notify_subscribers(channel_id, channel_title, video_url, video_title, table)
 def sanitize_session_id(channel_title, video_title):
     """
     Creates a sanitized session ID from channel and video titles.
-    Format: {channel_title}-{video_title}-{short_uuid}
-    Max length: 80 characters (to be safe for AWS limits)
+    Format: {channel_title}-{video_title}-{uuid}
+    Min length: 33 characters (AgentCore requirement)
+    Max length: 95 characters (to be safe for AWS limits)
     Allowed chars: Alphanumeric, hyphen, underscore
     """
     import re
+    
+    MIN_SESSION_ID_LENGTH = 33
     
     # 1. Sanitize strings (replace non-alphanumeric with hyphen)
     # Remove any character that isn't a-z, A-Z, 0-9, -, or _
     # We allow - and _ but want to replace spaces with -
     
     def clean(s):
+        if not s:
+            return ""
         s = s.replace(" ", "-") # Spaces to hyphens
         s = re.sub(r'[^a-zA-Z0-9\-_]', '', s) # Remove illegal chars
         s = re.sub(r'-+', '-', s) # Collapse multiple hyphens
+        s = s.strip('-') # Remove leading/trailing hyphens
         return s
         
     c_clean = clean(channel_title)
     v_clean = clean(video_title)
     
-    # 2. Add randomness (short UUID) to ensure uniqueness if titles match
-    short_uuid = str(uuid.uuid4())[:8]
+    # 2. Add randomness (full UUID) to ensure uniqueness and minimum length
+    # Full UUID is 36 chars, which ensures we meet the 33 char minimum even with empty titles
+    full_uuid = str(uuid.uuid4())
     
     # 3. Construct and Truncate
-    # We have 80 chars total. UUID is 8 + 1 hyphen = 9.
-    # We have ~71 chars for titles. Split roughly 30/40 or 25/45.
-    # Let's cap channel at 20 and video at 40.
+    # We have 95 chars total. UUID is 36 + 1 hyphen = 37.
+    # We have ~58 chars for titles. Split roughly 20/38.
     
     c_trunc = c_clean[:20]
-    v_trunc = v_clean[:50] # Give more room to video title
+    v_trunc = v_clean[:38] # Give more room to video title
     
-    session_id = f"{c_trunc}-{v_trunc}-{short_uuid}"
+    # Build parts, filtering out empty strings to avoid leading/trailing hyphens
+    parts = [p for p in [c_trunc, v_trunc, full_uuid] if p]
+    session_id = "-".join(parts)
     
-    # Final safety check for length (though truncation handles it)
-    return session_id[:95] # Bedrock limit is around 100 often, but let's stay under valid range.
+    # Final safety check for length
+    session_id = session_id[:95]
+    
+    # Ensure minimum length (should always be met due to full UUID, but just in case)
+    if len(session_id) < MIN_SESSION_ID_LENGTH:
+        # Pad with additional UUID characters
+        session_id = f"{session_id}-{str(uuid.uuid4()).replace('-', '')}"[:95]
+    
+    return session_id
 
 def invoke_agent(video_url, instructions, channel_title="Briefly", video_title="Video"):
-    logger.info(f"▶️ Summarizing video for notification: {video_url}")
+    logger.info(f"▶️ Summarizing video from {channel_title} for notification: {video_url}")
 
     payload = json.dumps({
         "videoUrl": video_url,
