@@ -390,9 +390,12 @@ def invoke_agent(video_url, instructions, channel_title="Briefly", video_title="
 
     # Check for "apology" messages indicating transcript is unavailable
     fail_phrases = [
-        "apologize, but I wasn't able to retrieve the transcript",
-        "apologize, but it seems that subtitles are disabled", 
-        "apologize, but I cannot access the transcript"
+        "I couldn't retrieve the transcript",
+        "subtitles or transcripts are disabled for this video",
+        "transcripts are disabled for this video",
+        "I wasn't able to retrieve the transcript",
+        "it seems that subtitles are disabled", 
+        "I cannot access the transcript"
     ]
     
     for phrase in fail_phrases:
