@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import logging
 import re
 from dotenv import load_dotenv
 
@@ -9,12 +10,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from strands import Agent
 from strands.models import BedrockModel
-from strands.models.gemini import GeminiModel
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from tools.youtube import get_video_transcript
 from prompts.prompt import SYSTEM_PROMPT
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Monkey patch BedrockAgentCoreApp to avoid "data: " prefix and quotes for strings
 def _raw_convert_to_sse(self, obj) -> bytes:
@@ -36,7 +39,7 @@ app = BedrockAgentCoreApp()
 
 @app.entrypoint
 async def invoke(payload):
-    print(f"▶️ Received payload: {json.dumps(payload)}")
+    logger.info(f"▶️ Received payload: {json.dumps(payload)}")
 
     video_url = payload.get('videoUrl', '')
     additional_instructions = payload.get('additionalInstructions', '')
@@ -62,12 +65,12 @@ async def invoke(payload):
             if "data" in event:
                 yield event["data"]
 
-        print("\n✅ Agent completed")
+        logger.info("✅ Agent completed")
     except Exception as e:
         error_response = {"error": str(e), "type": "stream_error"}
-        print(f"🛑 Streaming error: {error_response}")
+        logger.error(f"🛑 Streaming error: {error_response}", exc_info=True)
         yield error_response
     
 if __name__ == "__main__":
-    print("⚙️ Briefly AI agent started")
+    logger.info("⚙️ Briefly AI agent started")
     app.run()

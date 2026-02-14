@@ -1,8 +1,12 @@
 import os
 import re
+import logging
 from strands import tool
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import WebshareProxyConfig
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def extract_video_id(url: str) -> str:
     """
@@ -29,7 +33,7 @@ def get_video_transcript(video_url: str) -> str:
     try:
         video_id = extract_video_id(video_url)
         
-        print("Fetching transcript for video: ", video_id)
+        logger.info(f"Fetching transcript for video: {video_id}")
 
         api = YouTubeTranscriptApi(
             proxy_config=WebshareProxyConfig(
@@ -41,9 +45,9 @@ def get_video_transcript(video_url: str) -> str:
         
         text_transcript = " ".join([item.text for item in transcript])
 
-        print("Transcript fetched successfully")
+        logger.info("Transcript fetched successfully")
 
         return text_transcript
     except Exception as e:
-        print("❌ Error fetching transcript: ", str(e)) 
+        logger.error(f"❌ Error fetching transcript: {str(e)}", exc_info=True) 
         raise e
